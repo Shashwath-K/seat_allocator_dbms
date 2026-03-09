@@ -1,0 +1,56 @@
+{% extends "allocation/base.html" %}
+{% block title %}Allocate Seats{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Allocate Seats</h1>
+    <p>Automatically assigns each student to an available seat, respecting room capacity limits.</p>
+</div>
+<div class="card">
+
+    <!-- Summary before allocating -->
+    <p class="section-title">Pre-allocation Summary</p>
+    <table style="max-width:400px;">
+        <tr>
+            <td>Total Students</td>
+            <td><strong>{{ total_students }}</strong></td>
+        </tr>
+        <tr>
+            <td>Total Seats Available</td>
+            <td><strong>{{ total_seats }}</strong></td>
+        </tr>
+        <tr>
+            <td>Already Allocated</td>
+            <td><strong>{{ already_allocated }}</strong></td>
+        </tr>
+    </table>
+
+    <hr />
+
+    <!-- DB Constraints explained -->
+    <p class="section-title">Allocation Rules (DB-enforced)</p>
+    <ul style="padding-left:20px; line-height:2; font-size:.9rem; color:#4a5568;">
+        <li><strong>OneToOne constraint</strong> on Student → each student gets exactly one seat.</li>
+        <li><strong>UNIQUE(room, seat_number)</strong> on Allocation → no two students share a seat.</li>
+        <li><strong>Capacity check</strong> → allocation stops when all seats are exhausted.</li>
+        <li>Running allocation again <em>resets and recomputes</em> from scratch.</li>
+    </ul>
+
+    <hr />
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success" style="font-size:1rem; padding:11px 30px;">
+            ▶ Run Allocation Now
+        </button>
+        <a href="{% url 'allocation_table' %}" class="btn btn-secondary">View Current Results</a>
+    </form>
+
+    {% if total_seats == 0 %}
+    <p style="color:#e74c3c; margin-top:14px; font-size:.88rem;">
+        ⚠ No seats found. Please <a href="{% url 'generate_seats' %}">generate seats</a> for at least one room first.
+    </p>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "allocation/base.html" %}
+{% block title %}Allocation Results{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Allocation Results</h1>
+    <p>Shows the final mapping of students to rooms and seat numbers.</p>
+</div>
+<div class="card">
+
+    <!-- Actions -->
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+        <a href="{% url 'allocate_seats' %}" class="btn btn-success">Re-run Allocation</a>
+
+        <form method="post" action="{% url 'reset_allocation' %}" style="display:inline;"
+            onsubmit="return confirm('Reset all allocation records? Students and rooms will not be deleted.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Reset Allocation</button>
+        </form>
+    </div>
+
+    <!-- Allocation table -->
+    <p class="section-title">Allocated Students ({{ allocations|length }})</p>
+    {% if allocations %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Student Name</th>
+                <th>USN</th>
+                <th>Subject</th>
+                <th>Room</th>
+                <th>Seat No.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in allocations %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ a.student.name }}</td>
+                <td><code>{{ a.student.usn }}</code></td>
+                <td>{{ a.student.subject }}</td>
+                <td><strong>{{ a.room.room_name }}</strong></td>
+                <td>
+                    <span class="badge badge-green">{{ a.seat_number }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No allocations yet. <a href="{% url 'allocate_seats' %}">Run allocation.</a></p>
+    {% endif %}
+
+    <!-- Unallocated students -->
+    {% if unallocated %}
+    <hr />
+    <p class="section-title" style="color:#c0392b;">Unallocated Students ({{ unallocated|length }})</p>
+    <p style="font-size:.85rem; color:#7f8c8d; margin-bottom:10px;">
+        These students could not be allocated because seats were exhausted.
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>USN</th>
+                <th>Subject</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in unallocated %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ s.name }}</td>
+                <td><code>{{ s.usn }}</code></td>
+                <td>{{ s.subject }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <hr />
+    <p style="font-size:.82rem; color:#a0aec0;">
+        DB tables involved: <code>student</code>, <code>room</code>, <code>seat</code>, <code>allocation</code>.
+        Constraints: <code>OneToOne(student)</code>, <code>UNIQUE(room, seat_number)</code>.
+    </p>
+
+</div>
+{% endblock %}

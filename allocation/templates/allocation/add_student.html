@@ -1,0 +1,68 @@
+{% extends "allocation/base.html" %}
+{% block title %}Add Student{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Add Student</h1>
+    <p>Add students who need seat allocation. USN must be unique.</p>
+</div>
+<div class="card">
+
+    <!-- Add form -->
+    <p class="section-title">New Student</p>
+    <form method="post" style="max-width:420px;">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" placeholder="e.g. Riya Sharma" required />
+        </div>
+        <div class="form-group">
+            <label for="usn">USN</label>
+            <input type="text" id="usn" name="usn" placeholder="e.g. 1RV21CS001" required />
+        </div>
+        <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" placeholder="e.g. DBMS" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Add Student</button>
+    </form>
+
+    <hr />
+
+    <!-- Student list -->
+    <p class="section-title">Registered Students ({{ students|length }})</p>
+    {% if students %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>USN</th>
+                <th>Subject</th>
+                <th>Seat Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ s.name }}</td>
+                <td><code>{{ s.usn }}</code></td>
+                <td>{{ s.subject }}</td>
+                <td>
+                    {% if s.allocation %}
+                    <span class="badge badge-green">Allocated</span>
+                    {% else %}
+                    <span class="badge badge-red">Unallocated</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No students added yet.</p>
+    {% endif %}
+
+</div>
+{% endblock %}
