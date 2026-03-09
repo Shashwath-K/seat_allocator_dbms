@@ -1,0 +1,266 @@
+{% extends "allocation/base.html" %}
+{% block title %}Database Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Database Control Center</h1>
+    <p>Centralized CRUD operations for all system tables.</p>
+</div>
+
+<div class="card" style="padding: 0; background: transparent; box-shadow: none;">
+
+    <!-- Statistics Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="num">{{ counts.batches }}</div>
+            <div class="lbl">Batches</div>
+        </div>
+        <div class="stat-card">
+            <div class="num">{{ counts.students }}</div>
+            <div class="lbl">Students</div>
+        </div>
+        <div class="stat-card">
+            <div class="num">{{ counts.rooms }}</div>
+            <div class="lbl">Rooms</div>
+        </div>
+        <div class="stat-card">
+            <div class="num">{{ counts.allocations }}</div>
+            <div class="lbl">Allocations</div>
+        </div>
+    </div>
+
+    <!-- Management Sections -->
+    <div class="db-section">
+        <div class="section-title">📦 Batches</div>
+        <div class="table-container shadow-sm">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in batches %}
+                    <tr>
+                        <td><code>{{ b.batch_code }}</code></td>
+                        <td>{{ b.batch_name }}</td>
+                        <td>
+                            <a href="{% url 'edit_batch' b.id %}" class="btn-text" title="Edit Batch">Edit</a>
+                            <form method="post" action="{% url 'delete_batch' b.id %}" style="display:inline;"
+                                onsubmit="return confirm('Delete batch and unlink students?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-text-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-state">No batches found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="db-section mt-4">
+        <div class="section-title">👨‍🎓 Students</div>
+        <div class="table-container shadow-sm" style="max-height: 400px; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>USN</th>
+                        <th>Name</th>
+                        <th>Batch</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td><code>{{ s.usn }}</code></td>
+                        <td>{{ s.name }}</td>
+                        <td>{{ s.batch.batch_code|default:"—" }}</td>
+                        <td>
+                            <a href="{% url 'edit_student' s.id %}" class="btn-text" title="Edit Student">Edit</a>
+                            <form method="post" action="{% url 'delete_student' s.id %}" style="display:inline;"
+                                onsubmit="return confirm('Delete student permanently?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-text-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No students found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="db-section mt-4">
+        <div class="section-title">🏛️ Rooms & Seats</div>
+        <div class="table-container shadow-sm">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Room Name</th>
+                        <th>Type</th>
+                        <th>Capacity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rooms %}
+                    <tr>
+                        <td><strong>{{ r.room_name }}</strong></td>
+                        <td>{{ r.get_room_type_display }}</td>
+                        <td>{{ r.capacity }}</td>
+                        <td>
+                            <a href="{% url 'edit_room' r.id %}" class="btn-text" title="Edit Room">Edit</a>
+                            <form method="post" action="{% url 'clear_room_seats' r.id %}" style="display:inline;"
+                                onsubmit="return confirm('Clear ALL generated seats for this room?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-text-warning">Clear Seats</button>
+                            </form>
+                            <form method="post" action="{% url 'delete_room' r.id %}" style="display:inline;"
+                                onsubmit="return confirm('Delete room and all associated schedules?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-text-danger">Delete Room</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No rooms found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="db-section mt-4">
+        <div class="section-title">📍 Current Allocations</div>
+        <div class="table-container shadow-sm" style="max-height: 400px; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Room</th>
+                        <th>Seat</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in allocations %}
+                    <tr>
+                        <td>{{ a.student.name }}</td>
+                        <td>{{ a.room.room_name }}</td>
+                        <td><code>#{{ a.seat_number }}</code></td>
+                        <td>
+                            <form method="post" action="{% url 'delete_allocation_single' a.id %}"
+                                style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-text-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No active allocations.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .db-section {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+        border: 1px solid #edf2f7;
+    }
+
+    .mt-4 {
+        margin-top: 32px;
+    }
+
+    .shadow-sm {
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .table-container {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .btn-text {
+        color: #1e3a5f;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
+
+    .btn-text:hover {
+        text-decoration: underline;
+    }
+
+    .btn-text-danger {
+        background: none;
+        border: none;
+        color: #e53e3e;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
+
+    .btn-text-danger:hover {
+        text-decoration: underline;
+    }
+
+    .btn-text-warning {
+        background: none;
+        border: none;
+        color: #dd6b20;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
+
+    .btn-text-warning:hover {
+        text-decoration: underline;
+    }
+
+    .btn-icon {
+        text-decoration: none;
+        padding: 4px 8px;
+        filter: grayscale(1);
+    }
+
+    .btn-icon:hover {
+        filter: none;
+    }
+
+    code {
+        background: #f7fafc;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #4a5568;
+    }
+</style>
+{% endblock %}

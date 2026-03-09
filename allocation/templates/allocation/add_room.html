@@ -41,28 +41,32 @@
             <div class="field-row">
                 <div class="form-group">
                     <label>Number of Rows</label>
-                    <input type="number" name="num_rows" min="1" placeholder="e.g. 5" />
+                    <input type="number" name="num_rows" min="1" placeholder="e.g. 5" class="input-regular" required />
                 </div>
                 <div class="form-group">
                     <label>Tables per Row</label>
-                    <input type="number" name="tables_per_row" min="1" placeholder="e.g. 6" />
+                    <input type="number" name="tables_per_row" min="1" placeholder="e.g. 6" class="input-regular"
+                        required />
                 </div>
                 <div class="form-group">
                     <label>Seats per Table</label>
-                    <input type="number" name="seats_per_table" min="1" placeholder="e.g. 2" />
+                    <input type="number" name="seats_per_table" min="1" placeholder="e.g. 2" class="input-regular"
+                        required />
                 </div>
             </div>
-            <div class="capacity-preview" id="preview-regular">
-                Capacity preview: <strong id="cap-regular">—</strong>
-            </div>
         </div>
+        <div class="capacity-preview" id="preview-regular">
+            Capacity preview: <strong id="cap-regular">—</strong>
+        </div>
+        <!-- Matrix visual container -->
+        <div class="matrix-preview-container" id="matrix-regular"></div>
 
         <!-- ══════════════════════════════════════════ -->
         <!--  PANEL 2 — Lab                             -->
         <!-- ══════════════════════════════════════════ -->
         <div id="panel-lab" class="type-panel" style="display:none;">
             <div class="panel-info">
-                <strong>Computer Lab</strong> — Each system can host one (or more) student(s) per batch. Allocation is
+                <strong>Computer Lab</strong> — Each system can host one (or more) student(s) per batch. Scheduling is
                 done per batch.
                 <br />
                 <span style="color:#27ae60; font-size:.85rem;">
@@ -72,39 +76,53 @@
             <div class="field-row">
                 <div class="form-group">
                     <label>Number of Systems</label>
-                    <input type="number" name="num_systems" min="1" placeholder="e.g. 40" />
+                    <input type="number" name="num_systems" min="1" placeholder="e.g. 40" class="input-lab" />
                 </div>
                 <div class="form-group">
                     <label>Seats per Batch</label>
-                    <input type="number" name="seats_per_batch" min="1" placeholder="e.g. 40" />
+                    <input type="number" name="seats_per_batch" min="1" placeholder="e.g. 40" class="input-lab" />
                 </div>
             </div>
-            <div class="capacity-preview" id="preview-lab">
-                Batch capacity (seats allocated): <strong id="cap-lab">—</strong>
-                &nbsp;|&nbsp; Systems: <strong id="sys-lab">—</strong>
-            </div>
         </div>
+        <div class="capacity-preview" id="preview-lab">
+            Batch capacity (seats allocated): <strong id="cap-lab">—</strong>
+            &nbsp;|&nbsp; Systems: <strong id="sys-lab">—</strong>
+        </div>
+        <!-- Matrix visual container -->
+        <div class="matrix-preview-container" id="matrix-lab"></div>
 
         <!-- ══════════════════════════════════════════ -->
         <!--  PANEL 3 — Executive Conference Room       -->
         <!-- ══════════════════════════════════════════ -->
         <div id="panel-conference" class="type-panel" style="display:none;">
             <div class="panel-info">
-                <strong>Executive Conference Room</strong> — Limited seats where every seat has a dedicated system.
+                <strong>Executive Conference Room</strong> — Supports variable seating per row (elevations).
                 <br />
                 <span style="color:#27ae60; font-size:.85rem;">
-                    No. of Systems = Total Seats &nbsp;(auto-enforced)
+                    Each row can have a different number of seats. Systems = Total Seats.
                 </span>
             </div>
-            <div class="field-row" style="max-width:280px;">
-                <div class="form-group">
-                    <label>Total Seats (= Systems)</label>
-                    <input type="number" name="total_seats" min="1" placeholder="e.g. 15" />
+
+            <div id="conference-rows-container">
+                <div class="field-row row-config-item" style="margin-bottom: 8px;">
+                    <div class="form-group" style="max-width: 150px;">
+                        <label>Row 1 Seats</label>
+                        <input type="number" name="row_seats[]" min="1" placeholder="e.g. 5"
+                            class="row-seats-input input-conference" />
+                    </div>
                 </div>
             </div>
-            <div class="capacity-preview" id="preview-conference">
-                Capacity = Systems = <strong id="cap-conference">—</strong>
+
+            <button type="button" class="btn btn-success" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;"
+                onclick="addConferenceRow()">
+                + Add Elevation Row
+            </button>
+
+            <div class="capacity-preview" id="preview-conference" style="margin-top: 16px;">
+                Total Conference Capacity: <strong id="cap-conference">—</strong>
             </div>
+            <!-- Matrix visual container -->
+            <div class="matrix-preview-container" id="matrix-conference"></div>
         </div>
 
         <button type="submit" class="btn btn-primary" style="margin-top:10px;">Add Room</button>
@@ -221,6 +239,86 @@
         font-size: .88rem;
         color: #2d6a4f;
     }
+
+    /* Matrix Visualization Styles */
+    .matrix-preview-container {
+        margin-top: 16px;
+        padding: 16px;
+        background: #fff;
+        border: 1px dashed #cbd5e0;
+        border-radius: 6px;
+        overflow-x: auto;
+        display: none;
+        /* hidden when empty */
+    }
+
+    .room-matrix-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        justify-content: center;
+    }
+
+    .room-matrix-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .room-matrix-table {
+        background: #edf2f7;
+        border: 1px solid #cbd5e0;
+        border-radius: 4px;
+        padding: 6px;
+        display: flex;
+        gap: 4px;
+    }
+
+    .room-matrix-seat {
+        width: 24px;
+        height: 24px;
+        background: #a0aec0;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .65rem;
+        color: white;
+        font-weight: bold;
+    }
+
+    /* Lab/Conference flex container */
+    .room-matrix-flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .room-matrix-system {
+        width: 32px;
+        height: 32px;
+        background: #1e3a5f;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: .75rem;
+        position: relative;
+    }
+
+    .system-batch-indicator {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        background: #27ae60;
+        border-radius: 50%;
+        width: 14px;
+        height: 14px;
+        font-size: .55rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 
 <!-- ── JavaScript: tab switching + live capacity preview ── -->
@@ -236,6 +334,11 @@
         buttons[idx].classList.add('active');
 
         document.getElementById('panel-' + type).style.display = 'block';
+
+        // Toggle required attributes
+        document.querySelectorAll('.input-regular').forEach(i => i.required = (type === 'regular'));
+        document.querySelectorAll('.input-lab').forEach(i => i.required = (type === 'lab'));
+        document.querySelectorAll('.input-conference').forEach(i => i.required = (type === 'conference'));
     }
 
     // ── Live preview for Regular ──
@@ -247,6 +350,29 @@
         const t = +document.querySelector('[name=tables_per_row]').value || 0;
         const s = +document.querySelector('[name=seats_per_table]').value || 0;
         document.getElementById('cap-regular').textContent = (r && t && s) ? (r * t * s) + ' seats' : '—';
+
+        // Draw Matrix
+        const container = document.getElementById('matrix-regular');
+        if (r > 0 && t > 0 && s > 0 && r * t * s <= 500) { // arbitrary limit to prevent browser hang
+            container.style.display = 'block';
+            let html = '';
+            let seatCount = 1;
+            for (let i = 0; i < r; i++) {
+                html += '<div class="room-matrix-row">';
+                for (let j = 0; j < t; j++) {
+                    html += '<div class="room-matrix-table">';
+                    for (let k = 0; k < s; k++) {
+                        html += `<div class="room-matrix-seat">${seatCount++}</div>`;
+                    }
+                    html += '</div>'; // end table
+                }
+                html += '</div>'; // end row
+            }
+            container.innerHTML = html;
+        } else {
+            container.style.display = 'none';
+            if (r * t * s > 500) container.innerHTML = '<em>Matrix too large to preview</em>';
+        }
     }
 
     // ── Live preview for Lab ──
@@ -258,13 +384,78 @@
         const bat = +document.querySelector('[name=seats_per_batch]').value || 0;
         document.getElementById('cap-lab').textContent = bat ? bat + ' students/batch' : '—';
         document.getElementById('sys-lab').textContent = sys ? sys : '—';
+
+        const container = document.getElementById('matrix-lab');
+        if (sys > 0 && sys <= 500) {
+            container.style.display = 'block';
+            let html = '<div class="room-matrix-flex">';
+            for (let i = 0; i < sys; i++) {
+                let badge = (i < bat) ? `<div class="system-batch-indicator">✓</div>` : '';
+                html += `<div class="room-matrix-system" title="System ${i + 1}">💻${badge}</div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            container.style.display = 'none';
+        }
     }
 
     // ── Live preview for Conference ──
-    document.querySelector('[name=total_seats]').addEventListener('input', function () {
-        const v = +this.value || 0;
-        document.getElementById('cap-conference').textContent = v ? v + ' seats = ' + v + ' systems' : '—';
-    });
+    function addConferenceRow() {
+        const container = document.getElementById('conference-rows-container');
+        const rowCount = container.querySelectorAll('.row-config-item').length + 1;
+        const div = document.createElement('div');
+        div.className = 'field-row row-config-item';
+        div.style.marginBottom = '8px';
+        const currentType = document.getElementById('room_type_input').value;
+        div.innerHTML = `
+            <div class="form-group" style="max-width: 150px;">
+                <label>Row ${rowCount} Seats</label>
+                <input type="number" name="row_seats[]" min="1" placeholder="e.g. 5" class="row-seats-input input-conference" ${currentType === 'conference' ? 'required' : ''} />
+            </div>
+            <button type="button" class="btn btn-danger" style="margin-top:28px; padding:4px 8px; font-size:0.7rem;" onclick="removeConferenceRow(this)">Remove</button>
+        `;
+        container.appendChild(div);
+
+        // Add event listener to new input
+        div.querySelector('input').addEventListener('input', updateConferencePreview);
+    }
+
+    function removeConferenceRow(btn) {
+        btn.closest('.row-config-item').remove();
+        updateConferencePreview();
+    }
+
+    // Initial listener for row 1
+    document.querySelector('.row-seats-input').addEventListener('input', updateConferencePreview);
+
+    function updateConferencePreview() {
+        const inputs = document.querySelectorAll('.row-seats-input');
+        const counts = Array.from(inputs).map(i => +i.value || 0);
+        const total = counts.reduce((a, b) => a + b, 0);
+
+        document.getElementById('cap-conference').textContent = total ? total + ' total seats' : '—';
+
+        const container = document.getElementById('matrix-conference');
+        if (total > 0 && total <= 500) {
+            container.style.display = 'block';
+            let html = '<div class="room-matrix-flex-column" style="display:flex; flex-direction:column; gap:8px; align-items:center;">';
+            let seatCounter = 1;
+            counts.forEach((rowSize, idx) => {
+                if (rowSize > 0) {
+                    html += '<div class="room-matrix-row" style="display:flex; gap:4px; margin-bottom:0;">';
+                    for (let i = 0; i < rowSize; i++) {
+                        html += `<div class="room-matrix-system" style="border-radius:50%; background:#2c3e50; width:24px; height:24px; font-size:0.6rem;" title="Seat ${seatCounter}">${seatCounter++}</div>`;
+                    }
+                    html += '</div>';
+                }
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            container.style.display = 'none';
+        }
+    }
 </script>
 
 {% endblock %}

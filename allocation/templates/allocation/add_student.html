@@ -4,32 +4,83 @@
 {% block content %}
 <div class="page-header">
     <h1>Add Student</h1>
-    <p>Add students who need seat allocation. USN must be unique.</p>
+    <p>Register students and optionally link them to an active batch. Batch capacity is enforced automatically.</p>
 </div>
 <div class="card">
 
-    <!-- Add form -->
+    <!-- ── Form ── -->
     <p class="section-title">New Student</p>
-    <form method="post" style="max-width:420px;">
+    <form method="post">
         {% csrf_token %}
+
+        <!-- Row A: Batch picker -->
         <div class="form-group">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" placeholder="e.g. Riya Sharma" required />
+            <label>Batch (optional)</label>
+            <select name="batch_id" id="batch_select">
+                <option value="">— No Batch —</option>
+                {% for b in active_batches %}
+                <option value="{{ b.id }}">
+                    {{ b.batch_code }} | {{ b.batch_name }} | {{ b.academic_year }}
+                    ({{ b.student_count }}/{{ b.max_students }})
+                    {% if b.is_full %} [FULL]{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            {% if not active_batches %}
+            <span class="hint">No active batches found. <a href="{% url 'add_batch' %}">Create one first.</a></span>
+            {% endif %}
         </div>
+
+        <!-- Row B: Identity -->
+        <div class="field-row">
+            <div class="form-group">
+                <label>Full Name <span class="req">*</span></label>
+                <input type="text" name="name" placeholder="e.g. Riya Sharma" required />
+            </div>
+            <div class="form-group">
+                <label>USN <span class="req">*</span></label>
+                <input type="text" name="usn" placeholder="e.g. 1RV21CS001" required />
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <select name="gender">
+                    <option value="">— Select —</option>
+                    {% for val, lbl in gender_choices %}
+                    <option value="{{ val }}">{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Row C: Contact -->
+        <div class="field-row">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="student@example.com" />
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" name="phone" placeholder="+91 9876543210" />
+            </div>
+        </div>
+
+
+        <!-- Row E: Status -->
         <div class="form-group">
-            <label for="usn">USN</label>
-            <input type="text" id="usn" name="usn" placeholder="e.g. 1RV21CS001" required />
+            <label class="switch-label">
+                <input type="checkbox" name="is_present" checked />
+                &nbsp; Mark as Active for this academic session
+                <span class="hint" style="display:inline;margin-left:8px;">(Inactive students are excluded from
+                    scheduling)</span>
+            </label>
         </div>
-        <div class="form-group">
-            <label for="subject">Subject</label>
-            <input type="text" id="subject" name="subject" placeholder="e.g. DBMS" required />
-        </div>
+
         <button type="submit" class="btn btn-primary">Add Student</button>
     </form>
 
     <hr />
 
-    <!-- Student list -->
+    <!-- ── Student List ── -->
     <p class="section-title">Registered Students ({{ students|length }})</p>
     {% if students %}
     <table>
@@ -38,23 +89,47 @@
                 <th>#</th>
                 <th>Name</th>
                 <th>USN</th>
-                <th>Subject</th>
-                <th>Seat Status</th>
+                <th>Batch Info</th>
+                <th>Gender</th>
+                <th>Status</th>
+                <th>Last Schedule</th>
             </tr>
         </thead>
         <tbody>
             {% for s in students %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ s.name }}</td>
-                <td><code>{{ s.usn }}</code></td>
-                <td>{{ s.subject }}</td>
                 <td>
-                    {% if s.allocation %}
-                    <span class="badge badge-green">Allocated</span>
+                    <strong>{{ s.name }}</strong>
+                    {% if s.email %}<br /><span style="font-size:.75rem;color:#718096;">{{ s.email }}</span>{% endif %}
+                </td>
+                <td><code>{{ s.usn }}</code></td>
+                <td>
+                    {% if s.batch %}
+                    <div style="font-weight:600; color:#1e3a5f;">{{ s.batch.batch_code }}</div>
+                    <div style="font-size:.7rem; color:#718096;">
+                        {{ s.batch.department }} | Sem {{ s.batch.semester }}
+                    </div>
                     {% else %}
-                    <span class="badge badge-red">Unallocated</span>
+                    <span style="color:#a0aec0;">—</span>
                     {% endif %}
+                </td>
+                <td>{{ s.get_gender_display|default:"—" }}</td>
+                <td>
+                    {% if s.is_present %}
+                    <span class="badge badge-green">Active</span>
+                    {% else %}
+                    <span class="badge badge-red">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% with a=s.allocations.first %}
+                    {% if a %}
+                    <span class="badge badge-green">{{ a.room.room_name }}-{{ a.seat_number }}</span>
+                    {% else %}
+                    <span class="badge badge-red">Not Scheduled</span>
+                    {% endif %}
+                    {% endwith %}
                 </td>
             </tr>
             {% endfor %}
@@ -65,4 +140,62 @@
     {% endif %}
 
 </div>
+
+<style>
+    .field-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+    }
+
+    .field-row .form-group {
+        flex: 1;
+        min-width: 160px;
+    }
+
+    .hint {
+        display: block;
+        font-size: .75rem;
+        color: #a0aec0;
+        margin-top: 2px;
+    }
+
+    .req {
+        color: #e74c3c;
+    }
+
+    select {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: .95rem;
+        font-family: inherit;
+        background: #fff;
+        transition: border-color .2s;
+    }
+
+    select:focus {
+        border-color: #1e3a5f;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, .12);
+    }
+
+    .switch-label {
+        display: flex;
+        align-items: center;
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+        gap: 4px;
+    }
+
+    .switch-label input[type=checkbox] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #1e3a5f;
+    }
+</style>
 {% endblock %}

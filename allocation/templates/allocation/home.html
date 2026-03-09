@@ -9,6 +9,11 @@
 <div class="card">
     <div class="stats-grid">
         <div class="stat-card">
+            <div class="num">{{ total_batches }}</div>
+            <div class="lbl">Batches <span style="font-size:.7rem;color:#27ae60;">({{ active_batches }} active)</span>
+            </div>
+        </div>
+        <div class="stat-card">
             <div class="num">{{ total_students }}</div>
             <div class="lbl">Students</div>
         </div>
@@ -27,12 +32,13 @@
     </div>
 
     <p class="section-title">Quick Workflow</p>
-    <ol style="padding-left:20px; line-height:2; color:#4a5568;">
-        <li><a href="{% url 'add_student' %}">Add Students</a> — enter student name, USN, subject</li>
-        <li><a href="{% url 'add_room' %}">Add Rooms</a> — enter room name and capacity</li>
-        <li><a href="{% url 'generate_seats' %}">Generate Seats</a> — create seat rows for each room</li>
-        <li><a href="{% url 'allocate_seats' %}">Allocate Seats</a> — auto-assign students to seats</li>
-        <li><a href="{% url 'allocation_table' %}">View Results</a> — see final allocation table</li>
+    <ol style="padding-left:20px; line-height:2.2; color:#4a5568;">
+        <li><a href="{% url 'add_batch' %}">Create Batches</a> — set max students, dates, active status</li>
+        <li><a href="{% url 'add_student' %}">Add Students</a> — link to batch, enter USN, subject, contact</li>
+        <li><a href="{% url 'add_room' %}">Add Rooms</a> — Regular / Lab / Conference with layout config</li>
+        <li><a href="{% url 'generate_seats' %}">Generate Seats</a> — auto-create seat rows from room capacity</li>
+
+        <li><a href="{% url 'allocation_table' %}">View Schedules</a> — live classroom schedules</li>
     </ol>
 </div>
 {% endblock %}

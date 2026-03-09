@@ -1,0 +1,151 @@
+{% extends "allocation/base.html" %}
+{% block title %}Edit Room - {{ room.room_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Edit Room Layout</h1>
+    <p>Modify settings for <strong>{{ room.room_name }}</strong> ({{ room.get_room_type_display }})</p>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="field-row">
+            <div class="form-group">
+                <label>Room Name</label>
+                <input type="text" name="room_name" value="{{ room.room_name }}" required />
+            </div>
+            <div class="form-group">
+                <label>Room Type</label>
+                <select name="room_type" id="room-type-select" class="form-control" onchange="togglePanels()">
+                    <option value="regular" {% if room.room_type=='regular' %}selected{% endif %}>Regular Class</option>
+                    <option value="lab" {% if room.room_type=='lab' %}selected{% endif %}>Lab/Computer Center</option>
+                    <option value="conference" {% if room.room_type=='conference' %}selected{% endif %}>Executive
+                        Conference Room</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Panels -->
+        <div id="panel-regular" class="type-panel" style="display:none;">
+            <div class="field-row">
+                <div class="form-group">
+                    <label>Number of Rows</label>
+                    <input type="number" name="num_rows" value="{{ room.num_rows|default:'' }}" />
+                </div>
+                <div class="form-group">
+                    <label>Tables per Row</label>
+                    <input type="number" name="tables_per_row" value="{{ room.tables_per_row|default:'' }}" />
+                </div>
+                <div class="form-group">
+                    <label>Seats per Table</label>
+                    <input type="number" name="seats_per_table" value="{{ room.seats_per_table|default:'' }}" />
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-lab" class="type-panel" style="display:none;">
+            <div class="field-row">
+                <div class="form-group">
+                    <label>Total Systems Available</label>
+                    <input type="number" name="num_systems" value="{{ room.num_systems|default:'' }}" />
+                </div>
+                <div class="form-group">
+                    <label>Seating per Batch</label>
+                    <input type="number" name="seats_per_batch" value="{{ room.seats_per_batch|default:'' }}" />
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-conference" class="type-panel" style="display:none;">
+            <div id="conference-rows-container">
+                {% if conf_rows %}
+                {% for row_val in conf_rows %}
+                <div class="field-row row-config-item" style="margin-bottom: 8px;">
+                    <div class="form-group" style="max-width: 150px;">
+                        <label>Row {{ forloop.counter }} Seats</label>
+                        <input type="number" name="row_seats[]" value="{{ row_val }}" class="row-seats-input"
+                            required />
+                    </div>
+                    {% if not forloop.first %}
+                    <button type="button" class="btn btn-danger"
+                        style="margin-top:28px; padding:4px 8px; font-size:0.7rem;"
+                        onclick="removeConferenceRow(this)">Remove</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="field-row row-config-item" style="margin-bottom: 8px;">
+                    <div class="form-group" style="max-width: 150px;">
+                        <label>Row 1 Seats</label>
+                        <input type="number" name="row_seats[]" value="{{ room.total_seats|default:'' }}"
+                            class="row-seats-input" required />
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-success" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;"
+                onclick="addConferenceRow()">
+                + Add Elevation Row
+            </button>
+        </div>
+
+        <div style="margin-top: 32px; display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary">Update Room Layout</button>
+            <a href="{% url 'database_dashboard' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    function togglePanels() {
+        const type = document.getElementById('room-type-select').value;
+        document.querySelectorAll('.type-panel').forEach(p => p.style.display = 'none');
+        document.getElementById('panel-' + type).style.display = 'block';
+    }
+
+    function addConferenceRow() {
+        const container = document.getElementById('conference-rows-container');
+        const rowCount = container.querySelectorAll('.row-config-item').length + 1;
+        const div = document.createElement('div');
+        div.className = 'field-row row-config-item';
+        div.style.marginBottom = '8px';
+        div.innerHTML = `
+            <div class="form-group" style="max-width: 150px;">
+                <label>Row ${rowCount} Seats</label>
+                <input type="number" name="row_seats[]" min="1" class="row-seats-input" required />
+            </div>
+            <button type="button" class="btn btn-danger" style="margin-top:28px; padding:4px 8px; font-size:0.7rem;" onclick="removeConferenceRow(this)">Remove</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function removeConferenceRow(btn) {
+        btn.closest('.row-config-item').remove();
+    }
+
+    window.onload = togglePanels;
+</script>
+
+<style>
+    .type-panel {
+        padding: 20px;
+        background: #f7fafc;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e0;
+        margin-top: 20px;
+    }
+
+    .field-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .field-row .form-group {
+        flex: 1;
+        min-width: 150px;
+    }
+</style>
+{% endblock %}

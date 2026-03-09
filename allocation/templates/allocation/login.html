@@ -1,0 +1,119 @@
+{% extends "allocation/base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <span class="lock-icon">🔒</span>
+            <h1>System Login</h1>
+            <p>Enter your credentials to access the Seat Allocation System</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="error-box">
+                Invalid username or password. Please try again.
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" placeholder="admin" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Login to System</button>
+        </form>
+
+        <div class="login-footer">
+            <p>Standard Admin Credentials: <code>admin</code> / <code>admin</code></p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 250px);
+    }
+
+    .login-card {
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        width: 100%;
+        max-width: 450px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .lock-icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .login-header h1 {
+        font-size: 1.75rem;
+        color: #1e3a5f;
+        margin-bottom: 8px;
+    }
+
+    .login-header p {
+        color: #718096;
+        font-size: 0.95rem;
+    }
+
+    .error-box {
+        background: #fff5f5;
+        color: #c53030;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #feb2b2;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    .btn-block {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.05rem;
+        margin-top: 10px;
+    }
+
+    .login-footer {
+        margin-top: 30px;
+        text-align: center;
+        border-top: 1px solid #edf2f7;
+        padding-top: 20px;
+    }
+
+    .login-footer p {
+        color: #a0aec0;
+        font-size: 0.85rem;
+    }
+
+    code {
+        background: #f7fafc;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #4a5568;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
