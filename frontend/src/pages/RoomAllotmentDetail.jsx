@@ -11,6 +11,9 @@ const RoomAllotmentDetail = () => {
     const [activeTab, setActiveTab] = useState('map');
     const [isReallocating, setIsReallocating] = useState(false);
 
+    // Drag and drop state
+    const [localOccupied, setLocalOccupied] = useState(null);
+
     // Assignment form state
     const [batches, setBatches] = useState([]);
     const [formData, setFormData] = useState({
@@ -95,6 +98,57 @@ const RoomAllotmentDetail = () => {
             .finally(() => setIsReallocating(false));
     };
 
+    const handleDrop = (e, targetSeat) => {
+        e.preventDefault();
+        const sourceSeatStr = e.dataTransfer.getData('text/plain');
+        if (!sourceSeatStr) return;
+        const sourceSeat = parseInt(sourceSeatStr, 10);
+        if (sourceSeat === targetSeat) return;
+
+        const currentMap = localOccupied || { ...roomDetails.occupied };
+        const newMap = { ...currentMap };
+
+        const temp = newMap[sourceSeat];
+        newMap[sourceSeat] = newMap[targetSeat];
+        newMap[targetSeat] = temp;
+
+        setLocalOccupied(newMap);
+    };
+
+    const saveSeatChanges = () => {
+        if (!localOccupied) return;
+        const changes = [];
+        Object.keys(localOccupied).forEach(seatNum => {
+            const occ = localOccupied[seatNum];
+            if (occ && occ.alloc_id) {
+                const originalOcc = roomDetails.occupied[seatNum];
+                if (!originalOcc || originalOcc.alloc_id !== occ.alloc_id) {
+                    changes.push({ alloc_id: occ.alloc_id, new_seat_number: parseInt(seatNum, 10) });
+                }
+            }
+        });
+
+        if (changes.length === 0) {
+            setLocalOccupied(null);
+            return;
+        }
+
+        fetch('http://127.0.0.1:8000/update_seats/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ changes })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.error) {
+                    setLocalOccupied(null);
+                    fetchData();
+                } else {
+                    alert(data.error);
+                }
+            });
+    };
+
     if (!roomDetails) {
         return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading room data...</div>;
     }
@@ -162,32 +216,141 @@ const RoomAllotmentDetail = () => {
                             <h2 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--primary-color)' }}>
                                 Live Seat Matrix Diagram
                             </h2>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn btn-outline" disabled={isReallocating} onClick={() => handleReallocate('shuffle')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>🔀 Shuffle</button>
-                                <button className="btn btn-outline" disabled={isReallocating} onClick={() => handleReallocate('uneven')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>⚄ Uneven Spread</button>
-                                <button className="btn btn-outline" disabled={isReallocating} onClick={() => handleReallocate('chaos')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>🌀 Chaos Mode</button>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                {localOccupied && (
+                                    <div style={{ display: 'flex', gap: '8px', marginRight: '16px' }}>
+                                        <button className="btn btn-primary" onClick={saveSeatChanges} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Save Changes</button>
+                                        <button className="btn btn-outline" onClick={() => setLocalOccupied(null)} style={{ padding: '6px 12px', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef4444' }}>Discard</button>
+                                    </div>
+                                )}
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: '16px' }}>(Drag & Drop to manual swap)</div>
+                                <button className="btn btn-outline" disabled={isReallocating || !!localOccupied} onClick={() => handleReallocate('shuffle')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>🔀 Shuffle</button>
+                                <button className="btn btn-outline" disabled={isReallocating || !!localOccupied} onClick={() => handleReallocate('uneven')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>⚄ Uneven Spread</button>
+                                <button className="btn btn-outline" disabled={isReallocating || !!localOccupied} onClick={() => handleReallocate('chaos')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>🌀 Chaos Mode</button>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '24px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '300px', alignContent: 'flex-start' }}>
-                            {Array.from({ length: roomDetails.capacity }).map((_, i) => {
-                                const seatNum = i + 1;
-                                const occ = roomDetails.occupied[seatNum];
-                                return (
-                                    <div key={seatNum} title={occ ? `Seat ${seatNum}: ${occ.usn} - ${occ.name}` : `Seat ${seatNum} - Empty`}
-                                        style={{
-                                            width: '45px', height: '45px', borderRadius: '6px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600,
-                                            background: occ ? 'var(--primary-color)' : '#fff', color: occ ? '#fff' : '#64748b',
-                                            cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', border: occ ? '2px solid transparent' : '2px solid #cbd5e1',
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                                        }}
-                                        onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                                        onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
-                                    >
-                                        {seatNum}
-                                    </div>
-                                );
-                            })}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '32px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '300px', alignContent: 'flex-start', justifyContent: 'center', overflowX: 'auto', overflowY: 'hidden' }}>
+                            {/* Flat Layout Fallback for Labs/Other */}
+                            {roomDetails.type !== 'regular' && roomDetails.type !== 'conference' && (
+                                Array.from({ length: roomDetails.capacity }).map((_, i) => {
+                                    const seatNum = i + 1;
+                                    const occMap = localOccupied || roomDetails.occupied;
+                                    const occ = occMap[seatNum];
+                                    return (
+                                        <div key={seatNum} title={occ ? `Seat ${seatNum}: ${occ.usn} - ${occ.name}` : `Seat ${seatNum} - Empty`}
+                                            draggable={!!occ}
+                                            onDragStart={(e) => { if (occ) e.dataTransfer.setData('text/plain', seatNum.toString()); }}
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={(e) => handleDrop(e, seatNum)}
+                                            style={{
+                                                width: '45px', height: '45px', borderRadius: '6px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600,
+                                                background: occ ? 'var(--primary-color)' : '#fff', color: occ ? '#fff' : '#64748b',
+                                                cursor: occ ? 'grab' : 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', border: occ ? '2px solid transparent' : '2px solid #cbd5e1',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                        >
+                                            {seatNum}
+                                        </div>
+                                    );
+                                })
+                            )}
+
+                            {/* Regular Room Layout */}
+                            {roomDetails.type === 'regular' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', minWidth: 'max-content' }}>
+                                    {Array.from({ length: roomDetails.num_rows || 0 }).map((_, rowIdx) => (
+                                        <div key={`row-${rowIdx}`} style={{ display: 'flex', gap: '24px', justifyContent: 'center', minWidth: 'max-content' }}>
+                                            {Array.from({ length: roomDetails.tables_per_row || 0 }).map((_, tableIdx) => (
+                                                <div key={`table-${rowIdx}-${tableIdx}`} style={{ display: 'flex', gap: '8px', padding: '12px', background: '#e2e8f0', borderRadius: '8px' }}>
+                                                    {Array.from({ length: roomDetails.seats_per_table || 0 }).map((_, seatIdx) => {
+                                                        const seatNum = (rowIdx * (roomDetails.tables_per_row * roomDetails.seats_per_table)) + (tableIdx * roomDetails.seats_per_table) + seatIdx + 1;
+                                                        if (seatNum > roomDetails.capacity) return null;
+                                                        const occMap = localOccupied || roomDetails.occupied;
+                                                        const occ = occMap[seatNum];
+                                                        return (
+                                                            <div key={`seat-${seatNum}`} title={occ ? `Seat ${seatNum}: ${occ.usn} - ${occ.name}` : `Seat ${seatNum} - Empty`}
+                                                                draggable={!!occ}
+                                                                onDragStart={(e) => { if (occ) e.dataTransfer.setData('text/plain', seatNum.toString()); }}
+                                                                onDragOver={(e) => e.preventDefault()}
+                                                                onDrop={(e) => handleDrop(e, seatNum)}
+                                                                style={{
+                                                                    width: '45px', height: '45px', borderRadius: '6px',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600,
+                                                                    background: occ ? 'var(--primary-color)' : '#fff', color: occ ? '#fff' : '#64748b',
+                                                                    cursor: occ ? 'grab' : 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', border: occ ? '2px solid transparent' : '2px solid #cbd5e1',
+                                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                                                }}
+                                                                onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                                                onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                                            >
+                                                                {seatNum}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Conference Room Layout */}
+                            {roomDetails.type === 'conference' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', minWidth: 'max-content' }}>
+                                    <div style={{ width: '120px', height: '24px', background: '#94a3b8', borderRadius: '4px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.85rem', fontWeight: 'bold' }}>STAGE</div>
+                                    {(() => {
+                                        const layoutArr = roomDetails.conference_layout ? roomDetails.conference_layout.split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n)) : [];
+                                        let currentSeat = 1;
+
+                                        return layoutArr.map((seatsInRow, rowIdx) => {
+                                            const rowSeats = [];
+                                            for (let i = 0; i < seatsInRow; i++) {
+                                                if (currentSeat > roomDetails.capacity) break;
+
+                                                const seatNum = currentSeat++;
+                                                const occMap = localOccupied || roomDetails.occupied;
+                                                const occ = occMap[seatNum];
+
+                                                const centerIdx = (seatsInRow - 1) / 2;
+                                                const distanceFromCenter = Math.abs(i - centerIdx);
+                                                const translateY = Math.pow(distanceFromCenter, 2) * 1.5;
+                                                const rotate = (i - centerIdx) * 2;
+
+                                                rowSeats.push(
+                                                    <div key={`conf-seat-${seatNum}`} title={occ ? `Seat ${seatNum}: ${occ.usn} - ${occ.name}` : `Seat ${seatNum} - Empty`}
+                                                        draggable={!!occ}
+                                                        onDragStart={(e) => { if (occ) e.dataTransfer.setData('text/plain', seatNum.toString()); }}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        onDrop={(e) => handleDrop(e, seatNum)}
+                                                        style={{
+                                                            width: '45px', height: '45px', borderRadius: '6px',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600,
+                                                            background: occ ? 'var(--primary-color)' : '#fff', color: occ ? '#fff' : '#64748b',
+                                                            cursor: occ ? 'grab' : 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', border: occ ? '2px solid transparent' : '2px solid #cbd5e1',
+                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                                            transform: `translateY(${translateY}px) rotate(${rotate}deg)`
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.transform = `translateY(calc(${translateY}px - 2px)) rotate(${rotate}deg)`}
+                                                        onMouseOut={e => e.currentTarget.style.transform = `translateY(${translateY}px) rotate(${rotate}deg)`}
+                                                    >
+                                                        {seatNum}
+                                                    </div>
+                                                );
+                                            }
+
+                                            const maxTranslateY = Math.pow((seatsInRow - 1) / 2, 2) * 1.5;
+                                            return (
+                                                <div key={`conf-row-${rowIdx}`} style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: `${Math.max(12, maxTranslateY - 10)}px` }}>
+                                                    {rowSeats}
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
