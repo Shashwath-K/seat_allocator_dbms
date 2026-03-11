@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Users, Search, MoreVertical } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Batches = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('list');
     const [batches, setBatches] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const [formData, setFormData] = useState({
         batch_name: '',
@@ -89,51 +92,69 @@ const Batches = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <div style={{ position: 'relative', width: '300px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
-                            <input type="text" className="form-control" placeholder="Search batches..." style={{ paddingLeft: '38px' }} />
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Search batches..."
+                                style={{ paddingLeft: '38px' }}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
                         <button className="btn btn-primary" onClick={() => setActiveTab('create')}>
                             <Plus size={16} /> New Batch
                         </button>
                     </div>
 
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Batch Code</th>
-                                <th>Name</th>
-                                <th>Capacity</th>
-                                <th>Status</th>
-                                <th style={{ width: '60px' }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {batches.map(b => (
-                                <tr key={b.id}>
-                                    <td><strong>{b.batch_code}</strong></td>
-                                    <td>{b.batch_name}</td>
-                                    <td>
-                                        {b.student_count || 0} / {b.max_students}
-                                        <div style={{ width: '100%', background: '#edf2f7', height: '6px', borderRadius: '3px', marginTop: '6px', overflow: 'hidden' }}>
-                                            <div style={{ width: `${((b.student_count || 0) / b.max_students) * 100}%`, background: 'var(--accent-color)', height: '100%' }}></div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${b.is_active ? 'badge-green' : 'badge-gray'}`}>
-                                            {b.is_active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                            <MoreVertical size={18} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {batches.length === 0 && (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No batches found in database.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                    <div className="cards-grid">
+                        {batches.filter(b =>
+                            b.batch_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            b.batch_name.toLowerCase().includes(searchTerm.toLowerCase())
+                        ).map(b => (
+                            <div
+                                key={b.id}
+                                className="card"
+                                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--border-color)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                                onClick={() => navigate(`/batches/${b.id}`)}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--primary-color)' }}>{b.batch_code}</h3>
+                                    <span className={`badge ${b.is_active ? 'badge-green' : 'badge-gray'}`}>
+                                        {b.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '12px', minHeight: '40px' }}>
+                                    {b.batch_name}
+                                </div>
+
+                                <div style={{ marginTop: 'auto' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
+                                        <span>Capacity</span>
+                                        <strong>{b.student_count || 0} / {b.max_students}</strong>
+                                    </div>
+                                    <div style={{ width: '100%', background: '#edf2f7', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${Math.min(((b.student_count || 0) / b.max_students) * 100, 100)}%`, background: 'var(--accent-color)', height: '100%' }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {batches.filter(b =>
+                        b.batch_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        b.batch_name.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                                No batches found matching your search.
+                            </div>
+                        )}
                 </div>
             )}
 
