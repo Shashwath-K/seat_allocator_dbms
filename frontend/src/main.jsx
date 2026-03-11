@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Batches from './pages/Batches.jsx'
+import BatchDetail from './pages/BatchDetail.jsx'
 import Students from './pages/Students.jsx'
 import Rooms from './pages/Rooms.jsx'
 import Allotment from './pages/Allotment.jsx'
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
       {
         path: "/batches",
         element: <Batches />
+      },
+      {
+        path: "/batches/:batchId",
+        element: <BatchDetail />
       },
       {
         path: "/students",
