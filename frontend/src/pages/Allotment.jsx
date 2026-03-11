@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarPlus, Calendar, ArrowRight } from 'lucide-react';
+import { CalendarPlus, Calendar, ArrowRight, Search, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Allotment = () => {
@@ -7,6 +7,10 @@ const Allotment = () => {
     const [allocations, setAllocations] = useState([]);
     const [roomGrids, setRoomGrids] = useState([]);
     const navigate = useNavigate();
+
+    // Search & Filter State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('all');
 
     // Form Dropdown Data
     const [batches, setBatches] = useState([]);
@@ -101,53 +105,105 @@ const Allotment = () => {
             </div>
 
             {activeTab === 'view' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    {roomGrids.length === 0 ? (
-                        <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                            No rooms configured for layout matrix display.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="card" style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '16px', flexWrap: 'wrap' }}>
+                        <div className="form-group" style={{ flex: '1', minWidth: '250px', marginBottom: 0 }}>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)' }} />
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Search scheduled facility..."
+                                    style={{ paddingLeft: '40px' }}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
-                    ) : (
-                        roomGrids.map(rg => (
-                            <div key={rg.id} className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid transparent' }}
+                        <div className="form-group" style={{ width: '200px', marginBottom: 0 }}>
+                            <select className="form-control" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                                <option value="all">All Room Types</option>
+                                <option value="regular">Regular Classes</option>
+                                <option value="lab">Laboratories</option>
+                                <option value="conference">Conference Executives</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                        {roomGrids.filter(rg => {
+                            const matchesSearch = rg.name.toLowerCase().includes(searchTerm.toLowerCase());
+                            const matchesType = filterType === 'all' || rg.type === filterType;
+                            return matchesSearch && matchesType;
+                        }).map(rg => (
+                            <div key={rg.id} className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', transition: 'transform 0.2s', border: '1px solid transparent', cursor: 'pointer' }}
                                 onMouseOver={(e) => e.currentTarget.style.border = '1px solid var(--primary-color)'}
                                 onMouseOut={(e) => e.currentTarget.style.border = '1px solid transparent'}
-                                onClick={() => navigate(`/allotment/${rg.id}`)}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <h3 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        {rg.name} <span className="badge badge-blue">{rg.type}</span>
-                                        <ArrowRight size={16} color="var(--text-muted)" />
-                                    </h3>
-                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }} onClick={(e) => e.stopPropagation()}>
-                                        Seats Generated: {rg.seats_generated} / {rg.capacity}
+                                onClick={() => navigate(`/allotment/${rg.id}`)}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: 'var(--text-color)' }}>{rg.name}</h3>
+                                        <span className={`badge ${rg.type === 'regular' ? 'badge-blue' : rg.type === 'conference' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'capitalize' }}>
+                                            {rg.type}
+                                        </span>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                            Generated: {rg.seats_generated} / {rg.capacity}
+                                        </div>
                                         {rg.seats_generated === 0 && (
-                                            <button className="btn btn-outline" style={{ marginLeft: '12px', padding: '4px 12px', fontSize: '0.8rem' }} onClick={() => handleGenerateSeats(rg.id)}>
-                                                Generate Seats
+                                            <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => handleGenerateSeats(rg.id)}>
+                                                Generate
                                             </button>
                                         )}
+                                    </div>
+                                </div>
+                                <div style={{ flex: '1' }}>
+                                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                        {rg.type === 'regular' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rows:</span> <strong>{rg.num_rows}</strong></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tables per Row:</span> <strong>{rg.tables_per_row}</strong></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Seats per Table:</span> <strong>{rg.seats_per_table}</strong></div>
+                                                <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-color)' }}><span>Est Capacity:</span> <strong>{rg.capacity}</strong></div>
+                                            </div>
+                                        )}
+                                        {rg.type === 'lab' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lab Systems:</span> <strong>{rg.num_systems}</strong></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Capacity Limit:</span> <strong>{rg.seats_per_batch} per batch</strong></div>
+                                            </div>
+                                        )}
+                                        {rg.type === 'conference' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span>Layout Pattern:</span>
+                                                    <div style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', letterSpacing: '1px' }}>{rg.conference_layout}</div>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-color)' }}><span>Est Capacity:</span> <strong>{rg.capacity}</strong></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                                    <span style={{ color: 'var(--primary-color)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                        View Live Map <ArrowRight size={14} />
                                     </span>
                                 </div>
-
-                                {/* Very simple layout representation */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '16px', background: '#f8fafc', borderRadius: '8px' }}>
-                                    {Array.from({ length: rg.capacity }).map((_, i) => {
-                                        const seatNum = i + 1;
-                                        const occ = rg.occupied[seatNum];
-                                        return (
-                                            <div key={seatNum} title={occ ? `Seat ${seatNum}: ${occ.usn} - ${occ.name}` : `Seat ${seatNum} - Empty`}
-                                                style={{
-                                                    width: '40px', height: '40px', borderRadius: '4px',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600,
-                                                    background: occ ? 'var(--accent-color)' : '#e2e8f0', color: occ ? '#fff' : '#64748b',
-                                                    cursor: 'pointer', transition: '0.2s'
-                                                }}>
-                                                {seatNum}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
                             </div>
-                        ))
-                    )}
+                        ))}
+                        {roomGrids.filter(rg => {
+                            const matchesSearch = rg.name.toLowerCase().includes(searchTerm.toLowerCase());
+                            const matchesType = filterType === 'all' || rg.type === filterType;
+                            return matchesSearch && matchesType;
+                        }).length === 0 && (
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                    {roomGrids.length === 0 ? "No rooms configured for layout matrix display." : "No scheduled facilities match your search criteria."}
+                                </div>
+                            )}
+                    </div>
                 </div>
             )}
 
