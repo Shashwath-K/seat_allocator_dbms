@@ -8,9 +8,12 @@ const BatchDetail = () => {
 
     const [batch, setBatch] = useState(null);
     const [students, setStudents] = useState([]);
+    const [unassignedStudents, setUnassignedStudents] = useState([]);
 
     // Add/Edit Student form state
     const [isAdding, setIsAdding] = useState(false);
+    const [isAssigning, setIsAssigning] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
@@ -30,6 +33,15 @@ const BatchDetail = () => {
                     setStudents(data.students || []);
                 } else {
                     console.error(data.error);
+                }
+            })
+            .catch(err => console.error(err));
+            
+        fetch('http://127.0.0.1:8000/students/unassigned/')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.error) {
+                    setUnassignedStudents(data.students || []);
                 }
             })
             .catch(err => console.error(err));
@@ -67,6 +79,24 @@ const BatchDetail = () => {
             });
     };
 
+    const handleAssignExistingStudent = (studentId) => {
+        fetch('http://127.0.0.1:8000/students/assign-to-batch/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id: studentId, batch_id: batchId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.error) {
+                fetchData();
+                setIsAssigning(false);
+                setSearchQuery('');
+            } else {
+                alert(data.error);
+            }
+        });
+    };
+
     const handleDeleteStudent = (studentId) => {
         if (!window.confirm("Are you sure you want to remove this student?")) return;
 
@@ -99,9 +129,16 @@ const BatchDetail = () => {
 
     const cancelForm = () => {
         setIsAdding(false);
+        setIsAssigning(false);
         setEditingId(null);
+        setSearchQuery('');
         setFormData({ name: '', usn: '', gender: 'M', phone: '', email: '', is_present: true });
     };
+
+    const filteredUnassigned = unassignedStudents.filter(s => 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.usn.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     if (!batch) {
         return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading batch details...</div>;
@@ -132,12 +169,56 @@ const BatchDetail = () => {
             <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--primary-color)' }}>Assigned Students</h2>
-                    {!isAdding && (
-                        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
-                            <UserPlus size={16} /> Add Student
-                        </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        {!isAssigning && !isAdding && (
+                            <button className="btn btn-outline" onClick={() => setIsAssigning(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                Assign Existing Student
+                            </button>
+                        )}
+                        {!isAdding && !isAssigning && (
+                            <button className="btn btn-primary" onClick={() => setIsAdding(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <UserPlus size={16} /> Create New Student
+                            </button>
+                        )}
+                    </div>
                 </div>
+
+                {isAssigning && (
+                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '24px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Assign Unassigned Student</h3>
+                            <button className="btn btn-outline" onClick={cancelForm} style={{ padding: '4px 8px' }}><X size={16} /></button>
+                        </div>
+                        <input 
+                            type="text" 
+                            className="form-control" 
+                            placeholder="Type to search by Name or USN..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ marginBottom: '12px' }}
+                            autoFocus
+                        />
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white' }}>
+                            {filteredUnassigned.length > 0 ? (
+                                filteredUnassigned.map(s => (
+                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>{s.name}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{s.usn}</div>
+                                        </div>
+                                        <button className="btn btn-primary" onClick={() => handleAssignExistingStudent(s.id)} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                                            Assign
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    {unassignedStudents.length === 0 ? "No unassigned students found globally." : "No matching students found."}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {isAdding && (
                     <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '24px', border: '1px solid var(--border-color)' }}>
