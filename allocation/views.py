@@ -285,55 +285,125 @@ def generate_seats(request):
 def allocate_manual(request):
     """
     Manually assign a specific batch to a room for a duration.
+
+    Rules enforced:
+      Rule 1 — Room capacity >= actual student count in batch
+      Rule 3 — (batch, date, time_slot) must be unique → no double-booking a batch
+      Rule 3 — (room, date, time_slot) must be unique → no double-booking a room
+      Rule 4 — Student conflict is prevented automatically because allocation is
+                batch-level; all students in the batch share the same slot.
     """
     batches = Batch.objects.filter(is_active=True)
     rooms = Room.objects.all()
 
     if request.method == "POST":
-        batch_id = request.POST.get("batch_id")
-        room_id = request.POST.get("room_id")
+        batch_id   = request.POST.get("batch_id")
+        room_id    = request.POST.get("room_id")
         start_date = request.POST.get("start_date")
-        end_date = request.POST.get("end_date")
-        days = request.POST.getlist("days")
-        days_str = ",".join(days)
+        end_date   = request.POST.get("end_date")
+        date       = request.POST.get("date") or None        # specific session date
+        time_slot  = request.POST.get("time_slot", "").strip()  # e.g. "FN", "AN", "09:00-10:00"
+        days       = request.POST.getlist("days")
+        days_str   = ",".join(days)
 
-        batch = get_object_or_404(Batch, id=batch_id)
-        room = get_object_or_404(Room, id=room_id)
+        batch   = get_object_or_404(Batch, id=batch_id)
+        room    = get_object_or_404(Room, id=room_id)
         students = Student.objects.filter(batch=batch, is_present=True)
+        student_count = students.count()
 
-        # Check for overlapping schedules
-        overlapping = Allocation.objects.filter(
-            student__batch=batch,
-            start_date__lte=end_date,
-            end_date__gte=start_date
-        )
+        errors = []
 
-        if overlapping.exists():
-            messages.error(request, f"Manual Scheduling Failed: Batch {batch.batch_code} is already allocated between {start_date} and {end_date}.")
-        elif students.count() > room.capacity:
-            messages.error(request, f"Manual Scheduling Failed: Batch {batch.batch_code} size ({students.count()}) exceeds {room.room_name} capacity ({room.capacity}).")
+        # ── Rule 1: Capacity check (actual student count, not max_students) ─
+        if student_count > room.capacity:
+            errors.append(
+                f"Room capacity check failed: Batch '{batch.batch_code}' has "
+                f"{student_count} present students but '{room.room_name}' only fits "
+                f"{room.capacity}."
+            )
+
+        # ── Rule 3a: Batch may not be assigned two rooms for same date+slot ─
+        if date and time_slot:
+            batch_slot_conflict = Allocation.objects.filter(
+                batch=batch,
+                date=date,
+                time_slot=time_slot,
+            ).exclude(room=room)
+            if batch_slot_conflict.exists():
+                conflict_room = batch_slot_conflict.first().room.room_name
+                errors.append(
+                    f"Scheduling conflict: Batch '{batch.batch_code}' is already "
+                    f"assigned to room '{conflict_room}' on {date} [{time_slot}]."
+                )
+
+        # ── Rule 3b: Room may not host two batches for same date+slot ────
+        if date and time_slot:
+            room_slot_conflict = Allocation.objects.filter(
+                room=room,
+                date=date,
+                time_slot=time_slot,
+            ).exclude(batch=batch)
+            if room_slot_conflict.exists():
+                conflict_batch = room_slot_conflict.first().batch
+                conflict_code  = conflict_batch.batch_code if conflict_batch else "unknown"
+                errors.append(
+                    f"Room conflict: '{room.room_name}' is already occupied by "
+                    f"batch '{conflict_code}' on {date} [{time_slot}]."
+                )
+
+        # ── Legacy date-range overlap check (kept for non-slot allocations) ─
+        if not date and start_date and end_date:
+            overlapping = Allocation.objects.filter(
+                student__batch=batch,
+                start_date__lte=end_date,
+                end_date__gte=start_date,
+            )
+            if overlapping.exists():
+                errors.append(
+                    f"Batch '{batch.batch_code}' is already allocated between "
+                    f"{start_date} and {end_date}."
+                )
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        elif student_count == 0:
+            messages.error(request, f"Batch '{batch.batch_code}' has no present students to allocate.")
         else:
             seats = Seat.objects.filter(room=room).order_by("seat_number")
             if not seats.exists():
-                messages.error(request, f"Manual Scheduling Failed: No seats generated for Room '{room.room_name}'. Please use the Generate Seats tool first.")
+                messages.error(
+                    request,
+                    f"No seats generated for Room '{room.room_name}'. "
+                    f"Please use the Generate Seats tool first."
+                )
                 return redirect("allocate_manual")
 
             for i, student in enumerate(students):
                 Allocation.objects.create(
                     student=student,
+                    batch=batch,          # ← Rule 3: store batch directly
                     room=room,
                     seat_number=seats[i].seat_number,
-                    start_date=start_date,
-                    end_date=end_date,
-                    days_of_week=days_str
+                    start_date=start_date or None,
+                    end_date=end_date or None,
+                    days_of_week=days_str,
+                    date=date,            # ← Rule 3: specific session date
+                    time_slot=time_slot,  # ← Rule 3: specific time slot
                 )
-            messages.success(request, f"Manually scheduled Batch {batch.batch_code} to {room.room_name} from {start_date} to {end_date}.")
+            messages.success(
+                request,
+                f"Batch '{batch.batch_code}' ({student_count} students) allocated to "
+                f"'{room.room_name}'"
+                + (f" on {date} [{time_slot}]" if date else f" from {start_date} to {end_date}")
+                + "."
+            )
             return redirect("allocation_table")
 
     return render(request, "allocation/allocate_manual.html", {
         "batches": batches,
-        "rooms": rooms
+        "rooms":   rooms,
     })
+
 
 
 @login_required
