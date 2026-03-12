@@ -1,7 +1,7 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from allocation.models import Student, Room, Seat, Allocation, Batch
+from allocation.models import Student, Room, Seat, Allocation, Batch, Mentor
 
 def home(request):
     try:
@@ -45,6 +45,70 @@ def add_batch(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def get_batch(request, batch_id):
+    if request.method == "GET":
+        try:
+            batch = Batch.objects.filter(id=batch_id).values().first()
+            if not batch:
+                return JsonResponse({"error": "Batch not found"}, status=404)
+            
+            # Count the students assigned to this batch
+            batch['student_count'] = Student.objects.filter(batch_id=batch_id).count()
+            
+            # Fetch those students
+            students = list(Student.objects.filter(batch_id=batch_id).values(
+                'id', 'name', 'usn', 'email', 'phone', 'gender', 'is_present'
+            ))
+            return JsonResponse({"batch": batch, "students": students})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def get_unassigned_students(request):
+    """Returns a list of all students who do not currently belong to any batch."""
+    if request.method == "GET":
+        try:
+            # Fetch students where batch is None
+            students = list(Student.objects.filter(batch__isnull=True).values(
+                'id', 'name', 'usn', 'email', 'phone', 'gender', 'is_present'
+            ))
+            return JsonResponse({"students": students})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def assign_student_to_batch(request):
+    """Assigns an explicitly unassigned student to a given batch_id"""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            student_id = data.get("student_id")
+            batch_id = data.get("batch_id")
+            
+            student = Student.objects.filter(id=student_id).first()
+            if not student:
+                 return JsonResponse({"error": "Student not found"}, status=404)
+            
+            # None batch_id means remove from batch, otherwise add to batch
+            batch = None 
+            if batch_id: 
+                 batch = Batch.objects.filter(id=batch_id).first()
+                 if not batch:
+                     return JsonResponse({"error": "Batch not found"}, status=404)
+                     
+            student.batch = batch
+            student.save()
+            return JsonResponse({"message": "Student successfully assigned", "id": student.id})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+            
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
@@ -122,74 +186,174 @@ def add_room(request):
 def allocate_manual(request):
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            batch_id = data.get("batch_id")
-            room_id = data.get("room_id")
+            data       = json.loads(request.body)
+            batch_id   = data.get("batch_id")
+            room_id    = data.get("room_id")
+            mentor_id  = data.get("mentor_id")              # ← Mentor (Rule: required for new sessions)
             start_date = data.get("start_date")
-            end_date = data.get("end_date")
-            days = data.get("days", [])
-            strategy = data.get("strategy", "sequential")
-            days_str = ",".join(days)
+            end_date   = data.get("end_date")
+            date       = data.get("date") or None            # Rule 3: specific session date
+            time_slot  = data.get("time_slot", "").strip()   # Rule 3: e.g. "FN", "AN"
+            days       = data.get("days", [])
+            strategy   = data.get("strategy", "sequential")
+            days_str   = ",".join(days)
 
             batch = Batch.objects.filter(id=batch_id).first()
-            room = Room.objects.filter(id=room_id).first()
+            room  = Room.objects.filter(id=room_id).first()
             if not batch or not room:
                 return JsonResponse({"error": "Invalid batch or room"}, status=400)
-            
-            students = Student.objects.filter(batch=batch, is_present=True)
 
-            # Check for overlapping schedules
-            overlapping = Allocation.objects.filter(
-                student__batch=batch,
-                start_date__lte=end_date,
-                end_date__gte=start_date
-            )
-
-            if overlapping.exists():
-                return JsonResponse({"error": f"Manual Scheduling Failed: Batch {batch.batch_code} is already allocated between {start_date} and {end_date}."}, status=400)
-            elif students.count() > room.capacity:
-                return JsonResponse({"error": f"Manual Scheduling Failed: Batch {batch.batch_code} size ({students.count()}) exceeds {room.room_name} capacity ({room.capacity})."}, status=400)
-            else:
-                seats = list(Seat.objects.filter(room=room).order_by("seat_number"))
-                if not seats:
-                    return JsonResponse({"error": f"Manual Scheduling Failed: No seats generated for Room '{room.room_name}'. Please use the Generate Seats tool first."}, status=400)
-
-                students_list = list(students)
-                
-                # Apply allocation strategy
-                if strategy == "shuffle":
-                    import random
-                    random.shuffle(seats)
-                elif strategy == "uneven":
-                    # Take every other seat.
-                    seats = seats[::2]
-                    if len(students_list) > len(seats):
-                        return JsonResponse({"error": f"Uneven Strategy Failed: Batch size ({len(students_list)}) exceeds available spaced seats ({len(seats)})."}, status=400)
-                elif strategy == "chaos":
-                    mid = len(students_list) // 2 + (len(students_list) % 2)
-                    first_half = students_list[:mid]
-                    second_half = students_list[mid:]
-                    interleaved = []
-                    for i in range(len(first_half)):
-                        interleaved.append(first_half[i])
-                        if i < len(second_half):
-                            interleaved.append(second_half[i])
-                    students_list = interleaved
-
-                for i, student in enumerate(students_list):
-                    Allocation.objects.create(
-                        student=student,
-                        room=room,
-                        seat_number=seats[i].seat_number,
-                        start_date=start_date,
-                        end_date=end_date,
-                        days_of_week=days_str
+            # ── Mentor lookup ──────────────────────────────────────────────────
+            mentor = None
+            if mentor_id:
+                mentor = Mentor.objects.filter(id=mentor_id).first()
+                if not mentor:
+                    return JsonResponse(
+                        {"error": f"Mentor with id={mentor_id} not found."},
+                        status=400,
                     )
-                return JsonResponse({"message": f"Manually scheduled Batch {batch.batch_code} to {room.room_name} from {start_date} to {end_date} using '{strategy}' strategy."})
+
+            students      = Student.objects.filter(batch=batch, is_present=True)
+            student_count = students.count()
+
+            # ── Rule 1: Capacity must cover actual present student count ──────
+            if student_count > room.capacity:
+                return JsonResponse({
+                    "error": (
+                        f"Capacity check failed: Batch '{batch.batch_code}' has "
+                        f"{student_count} present students but '{room.room_name}' "
+                        f"only has capacity for {room.capacity}."
+                    )
+                }, status=400)
+
+            if student_count == 0:
+                return JsonResponse({
+                    "error": f"Batch '{batch.batch_code}' has no present students to allocate."
+                }, status=400)
+
+            # ── Rule 3a: Batch may not use two rooms at same date+slot ────────
+            if date and time_slot:
+                batch_slot_conflict = Allocation.objects.filter(
+                    batch=batch,
+                    date=date,
+                    time_slot=time_slot,
+                ).exclude(room=room)
+                if batch_slot_conflict.exists():
+                    conflict_room = batch_slot_conflict.first().room.room_name
+                    return JsonResponse({
+                        "error": (
+                            f"Scheduling conflict: Batch '{batch.batch_code}' is "
+                            f"already assigned to room '{conflict_room}' on {date} [{time_slot}]."
+                        )
+                    }, status=400)
+
+            # ── Rule 3b: Room may not host two batches at same date+slot ──────
+            if date and time_slot:
+                room_slot_conflict = Allocation.objects.filter(
+                    room=room,
+                    date=date,
+                    time_slot=time_slot,
+                ).exclude(batch=batch)
+                if room_slot_conflict.exists():
+                    conflict_batch = room_slot_conflict.first().batch
+                    conflict_code  = conflict_batch.batch_code if conflict_batch else "unknown"
+                    return JsonResponse({
+                        "error": (
+                            f"Room conflict: '{room.room_name}' is already occupied by "
+                            f"batch '{conflict_code}' on {date} [{time_slot}]."
+                        )
+                    }, status=400)
+
+            # ── Rule 4: Mentor may not be in two sessions at same date+slot ───
+            if mentor and date and time_slot:
+                mentor_conflict = Allocation.objects.filter(
+                    mentor=mentor,
+                    date=date,
+                    time_slot=time_slot,
+                ).exclude(batch=batch)
+                if mentor_conflict.exists():
+                    return JsonResponse({
+                        "error": (
+                            "Mentor is already allotted to another session "
+                            f"for this date and time. "
+                            f"({mentor.mentor_code} on {date} [{time_slot}])"
+                        )
+                    }, status=400)
+
+            # ── Legacy date-range overlap: delete + re-allocate (kept for range mode) ─
+            if not date and start_date and end_date:
+                overlapping = Allocation.objects.filter(
+                    student__batch=batch,
+                    start_date__lte=end_date,
+                    end_date__gte=start_date,
+                )
+                if overlapping.exists():
+                    overlapping.delete()
+
+            # ── Build seat list ───────────────────────────────────────────────
+            seats = list(Seat.objects.filter(room=room).order_by("seat_number"))
+            if not seats:
+                return JsonResponse({
+                    "error": (
+                        f"No seats generated for Room '{room.room_name}'. "
+                        f"Please use the Generate Seats tool first."
+                    )
+                }, status=400)
+
+            students_list = list(students)
+
+            # ── Apply allocation strategy ─────────────────────────────────────
+            if strategy == "shuffle":
+                import random
+                random.shuffle(seats)
+            elif strategy == "uneven":
+                seats = seats[::2]
+                if len(students_list) > len(seats):
+                    return JsonResponse({
+                        "error": (
+                            f"Uneven Strategy Failed: Batch size ({len(students_list)}) "
+                            f"exceeds available spaced seats ({len(seats)})."
+                        )
+                    }, status=400)
+            elif strategy == "chaos":
+                mid         = len(students_list) // 2 + (len(students_list) % 2)
+                first_half  = students_list[:mid]
+                second_half = students_list[mid:]
+                interleaved = []
+                for i in range(len(first_half)):
+                    interleaved.append(first_half[i])
+                    if i < len(second_half):
+                        interleaved.append(second_half[i])
+                students_list = interleaved
+
+            # ── Create allocation rows ────────────────────────────────────────
+            for i, student in enumerate(students_list):
+                Allocation.objects.create(
+                    student=student,
+                    batch=batch,           # ← Rule 3: direct batch FK
+                    room=room,
+                    mentor=mentor,         # ← Mentor FK (nullable, validated above)
+                    seat_number=seats[i].seat_number,
+                    start_date=start_date or None,
+                    end_date=end_date or None,
+                    days_of_week=days_str,
+                    date=date,             # ← Rule 3: specific session date
+                    time_slot=time_slot,   # ← Rule 3: specific time slot
+                )
+
+            slot_str = f" on {date} [{time_slot}]" if date else f" from {start_date} to {end_date}"
+            mentor_str = f" (Mentor: {mentor.mentor_code})" if mentor else ""
+            return JsonResponse({
+                "message": (
+                    f"Allocated Batch '{batch.batch_code}' ({student_count} students) "
+                    f"to '{room.room_name}'{slot_str} using '{strategy}' strategy{mentor_str}."
+                )
+            })
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 @csrf_exempt
 def allocations(request):
@@ -207,7 +371,11 @@ def allocations(request):
                     "seat_number": a.seat_number,
                     "start_date": a.start_date,
                     "end_date": a.end_date,
-                    "days_of_week": a.days_of_week
+                    "days_of_week": a.days_of_week,
+                    "date": str(a.date) if a.date else None,        # Rule 3
+                    "time_slot": a.time_slot or "",                  # Rule 3
+                    "mentor_id": a.mentor_id,                        # Mentor FK id
+                    "mentor_code": a.mentor.mentor_code if a.mentor else None,
                 })
 
             rooms = Room.objects.prefetch_related("seats", "allocations__student").all()
@@ -216,6 +384,7 @@ def allocations(request):
                 occupied = {}
                 for alloc in room.allocations.all():
                     occupied[alloc.seat_number] = {
+                        "alloc_id": alloc.id,
                         "name": alloc.student.name,
                         "usn": alloc.student.usn
                     }
@@ -380,6 +549,24 @@ def reset_allocation(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+def update_seats_api(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            changes = data.get("changes", [])
+            for change in changes:
+                alloc_id = change.get("alloc_id")
+                new_seat = change.get("new_seat_number")
+                if alloc_id and new_seat:
+                    alloc = Allocation.objects.get(id=alloc_id)
+                    alloc.seat_number = new_seat
+                    alloc.save()
+            return JsonResponse({"message": "Seats updated successfully"})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
 def edit_batch_api(request, batch_id):
     if request.method == "PUT":
         try:
@@ -452,3 +639,138 @@ def edit_room_api(request, room_id):
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
+# ══════════════════════════════════════════════════════════════════
+# MENTOR CRUD
+# ══════════════════════════════════════════════════════════════════
+
+@csrf_exempt
+def mentor_list_create(request):
+    """
+    GET  /mentors/   → list all mentors
+    POST /mentors/   → create a new mentor
+    """
+    if request.method == "GET":
+        mentors = list(
+            Mentor.objects.values("id", "name", "mentor_code", "department", "email", "created_at")
+        )
+        return JsonResponse({"mentors": mentors})
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            name        = data.get("name", "").strip()
+            mentor_code = data.get("mentor_code", "").strip()
+            department  = data.get("department", "").strip()
+            email       = data.get("email", "").strip()
+
+            if not name:
+                return JsonResponse({"error": "Mentor name is required."}, status=400)
+            if not mentor_code:
+                return JsonResponse({"error": "mentor_code is required and must be unique."}, status=400)
+
+            if Mentor.objects.filter(mentor_code=mentor_code).exists():
+                return JsonResponse(
+                    {"error": f"Mentor with code '{mentor_code}' already exists."},
+                    status=400,
+                )
+
+            mentor = Mentor.objects.create(
+                name=name,
+                mentor_code=mentor_code,
+                department=department,
+                email=email,
+            )
+            return JsonResponse({
+                "message": f"Mentor '{mentor.mentor_code}' created successfully.",
+                "id": mentor.id,
+            }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def mentor_detail(request, mentor_id):
+    """
+    GET    /mentors/<id>/        → retrieve mentor + their sessions summary
+    PUT    /mentors/<id>/        → update mentor fields
+    DELETE /mentors/<id>/delete/ → handled by mentor_delete view
+    """
+    try:
+        mentor = Mentor.objects.get(id=mentor_id)
+    except Mentor.DoesNotExist:
+        return JsonResponse({"error": "Mentor not found."}, status=404)
+
+    if request.method == "GET":
+        # Count sessions (unique date+time_slot combos) assigned to this mentor
+        sessions = (
+            Allocation.objects
+            .filter(mentor=mentor, date__isnull=False)
+            .values("date", "time_slot", "batch__batch_code", "room__room_name")
+            .distinct()
+        )
+        session_list = [
+            {
+                "date": str(s["date"]),
+                "time_slot": s["time_slot"],
+                "batch_code": s["batch__batch_code"],
+                "room_name": s["room__room_name"],
+            }
+            for s in sessions
+        ]
+        return JsonResponse({
+            "mentor": {
+                "id": mentor.id,
+                "name": mentor.name,
+                "mentor_code": mentor.mentor_code,
+                "department": mentor.department,
+                "email": mentor.email,
+            },
+            "sessions": session_list,
+            "session_count": len(session_list),
+        })
+
+    if request.method == "PUT":
+        try:
+            data = json.loads(request.body)
+            new_code = data.get("mentor_code", mentor.mentor_code).strip()
+
+            # Ensure the new code doesn't collide with another mentor's code
+            if new_code != mentor.mentor_code and Mentor.objects.filter(mentor_code=new_code).exists():
+                return JsonResponse(
+                    {"error": f"Another mentor with code '{new_code}' already exists."},
+                    status=400,
+                )
+
+            mentor.name        = data.get("name", mentor.name).strip() or mentor.name
+            mentor.mentor_code = new_code
+            mentor.department  = data.get("department", mentor.department).strip()
+            mentor.email       = data.get("email", mentor.email).strip()
+            mentor.save()
+            return JsonResponse({"message": "Mentor updated successfully."})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def mentor_delete(request, mentor_id):
+    """
+    DELETE /mentors/<id>/delete/  → remove a mentor
+    Existing allocation rows for this mentor will have mentor set to NULL
+    (SET_NULL is configured on the FK).
+    """
+    if request.method == "DELETE":
+        try:
+            mentor = Mentor.objects.get(id=mentor_id)
+            code = mentor.mentor_code
+            mentor.delete()
+            return JsonResponse({"message": f"Mentor '{code}' deleted. Existing sessions unlinked."})
+        except Mentor.DoesNotExist:
+            return JsonResponse({"error": "Mentor not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
