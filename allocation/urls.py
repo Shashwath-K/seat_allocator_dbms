@@ -10,10 +10,13 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
     # Batch
     path("batches/", api_views.add_batch, name="add_batch"),
+    path("batches/<int:batch_id>/", api_views.get_batch, name="get_batch"),
     path("batches/<int:batch_id>/toggle/", views.toggle_batch_status, name="toggle_batch_status"),
     path("batches/<int:batch_id>/delete/", api_views.delete_batch, name="delete_batch"),
     # Students
     path("students/", api_views.add_student, name="add_student"),
+    path("students/unassigned/", api_views.get_unassigned_students, name="get_unassigned_students"),
+    path("students/assign-to-batch/", api_views.assign_student_to_batch, name="assign_student_to_batch"),
     # Rooms
     path("rooms/", api_views.add_room, name="add_room"),
     path("generate-seats/", api_views.generate_seats_api, name="generate_seats"),
@@ -22,8 +25,12 @@ urlpatterns = [
     path("allocations/", api_views.allocations, name="allocation_table"),
     path("room_allocations/<int:room_id>/", api_views.room_allocations, name="room_allocations"),
     path("reallocate_room/<int:room_id>/", api_views.reallocate_room, name="reallocate_room"),
+    path("update_seats/", api_views.update_seats_api, name="update_seats"),
     path("reset-allocation/", api_views.reset_allocation, name="reset_allocation"),
-    
+    # Mentors
+    path("mentors/", api_views.mentor_list_create, name="mentor_list_create"),
+    path("mentors/<int:mentor_id>/", api_views.mentor_detail, name="mentor_detail"),
+    path("mentors/<int:mentor_id>/delete/", api_views.mentor_delete, name="mentor_delete"),
     # Database CRUD Dashboard
     path("database/", views.database_dashboard, name="database_dashboard"),
     path("students/<int:student_id>/edit/", api_views.edit_student_api, name="edit_student"),
