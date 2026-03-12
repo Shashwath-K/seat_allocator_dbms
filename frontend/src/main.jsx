@@ -10,6 +10,8 @@ import Rooms from './pages/Rooms.jsx'
 import Allotment from './pages/Allotment.jsx'
 import RoomAllotmentDetail from './pages/RoomAllotmentDetail.jsx'
 import Database from './pages/Database.jsx'
+import Mentors from './pages/Mentors.jsx'
+import MentorDetail from './pages/MentorDetail.jsx'
 import './index.css'
 
 const router = createBrowserRouter([
@@ -48,6 +50,14 @@ const router = createBrowserRouter([
       {
         path: "/database",
         element: <Database />
+      },
+      {
+        path: "/mentors",
+        element: <Mentors />
+      },
+      {
+        path: "/mentors/:mentorId",
+        element: <MentorDetail />
       }
     ]
   }
