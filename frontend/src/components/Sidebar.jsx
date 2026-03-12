@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UserPlus, Monitor, Calendar, DatabaseZap } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Monitor, Calendar, DatabaseZap, GraduationCap } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = () => {
@@ -25,6 +25,11 @@ const Sidebar = () => {
                 <NavLink to="/students" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <UserPlus size={20} />
                     <span>Students</span>
+                </NavLink>
+
+                <NavLink to="/mentors" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+                    <GraduationCap size={20} />
+                    <span>Mentors</span>
                 </NavLink>
 
                 <NavLink to="/rooms" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
