@@ -5,6 +5,7 @@ const Students = () => {
     const [activeTab, setActiveTab] = useState('list');
     const [students, setStudents] = useState([]);
     const [batches, setBatches] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         usn: '',
@@ -61,6 +62,14 @@ const Students = () => {
             .catch(err => console.error("Error creating student:", err));
     };
 
+    const handleDeleteStudent = (id, name) => {
+        if (!window.confirm(`Delete student "${name}"? This cannot be undone.`)) return;
+        fetch(`http://127.0.0.1:8000/students/${id}/delete/`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => { if (!data.error) fetchStudents(); else alert(data.error); })
+            .catch(err => console.error(err));
+    };
+
     return (
         <div className="fade-in">
             <header className="page-header">
@@ -90,7 +99,14 @@ const Students = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <div style={{ position: 'relative', width: '300px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
-                            <input type="text" className="form-control" placeholder="Search by USN or Name..." style={{ paddingLeft: '38px' }} />
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Search by USN or Name..."
+                                style={{ paddingLeft: '38px' }}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
                         </div>
                     </div>
                     <table>
@@ -101,11 +117,16 @@ const Students = () => {
                                 <th>Batch</th>
                                 <th>Gender</th>
                                 <th>Status</th>
-                                <th style={{ width: '60px' }}></th>
+                                <th style={{ width: '80px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {students.map(s => (
+                            {students
+                                .filter(s =>
+                                    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    s.usn.toLowerCase().includes(searchTerm.toLowerCase())
+                                )
+                                .map(s => (
                                 <tr key={s.id}>
                                     <td><strong>{s.usn}</strong></td>
                                     <td>{s.name}</td>
@@ -117,9 +138,11 @@ const Students = () => {
                                         </span>
                                     </td>
                                     <td>
-                                        <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                            <MoreVertical size={18} />
-                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteStudent(s.id, s.name)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}
+                                            title="Delete student"
+                                        >✕</button>
                                     </td>
                                 </tr>
                             ))}
