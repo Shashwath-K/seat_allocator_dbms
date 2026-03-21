@@ -1,3 +1,6 @@
+import re
+
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -20,6 +23,24 @@ GENDER_CHOICES = [
     ("F", "Female"),
     ("O", "Other"),
 ]
+
+
+def parse_conference_layout(layout):
+    if not layout:
+        return []
+
+    parts = [part.strip() for part in str(layout).split(",")]
+    rows = []
+    for part in parts:
+        if not part:
+            continue
+        if not re.fullmatch(r"\d+", part):
+            raise ValidationError({"conference_layout": "Conference layout must contain only positive integers separated by commas."})
+        value = int(part)
+        if value < 1:
+            raise ValidationError({"conference_layout": "Each conference row must contain at least one seat."})
+        rows.append(value)
+    return rows
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -89,10 +110,35 @@ class Batch(models.Model):
     def __str__(self):
         return f"{self.batch_code} — {self.batch_name} ({self.academic_year})"
 
+    def clean(self):
+        errors = {}
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            errors["end_date"] = "End date must be on or after start date."
+        if self.extended_date and self.end_date and self.extended_date < self.end_date:
+            errors["extended_date"] = "Extended date must be on or after end date."
+        if self.max_students < 1:
+            errors["max_students"] = "Max students must be at least 1."
+        if errors:
+            raise ValidationError(errors)
+
     class Meta:
         db_table  = "batch"
         ordering  = ["-created_at"]
         verbose_name_plural = "Batches"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(max_students__gte=1),
+                name="batch_max_students_gte_1",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(end_date__gte=models.F("start_date")),
+                name="batch_end_date_after_start_date",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(extended_date__isnull=True) | models.Q(extended_date__gte=models.F("end_date")),
+                name="batch_extended_date_after_end_date",
+            ),
+        ]
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -152,6 +198,9 @@ class Room(models.Model):
     total_seats     = models.PositiveIntegerField(null=True, blank=True)
     conference_layout = models.TextField(null=True, blank=True, help_text="Comma-separated seats per row, e.g. '5,7,9'")
 
+    def get_conference_rows(self):
+        return parse_conference_layout(self.conference_layout)
+
     def compute_capacity(self):
         if self.room_type == "regular":
             if self.num_rows and self.tables_per_row and self.seats_per_table:
@@ -162,13 +211,51 @@ class Room(models.Model):
         elif self.room_type == "conference":
             if self.conference_layout:
                 try:
-                    # Sum up all row values
-                    parts = [x.strip() for x in self.conference_layout.split(",") if x.strip()]
-                    return sum(int(p) for p in parts if p.isdigit())
-                except (ValueError, TypeError):
+                    return sum(self.get_conference_rows())
+                except ValidationError:
                     return self.total_seats or 0
             return self.total_seats or 0
         return 0
+
+    def clean(self):
+        errors = {}
+
+        if self.room_type == "regular":
+            if not all([self.num_rows, self.tables_per_row, self.seats_per_table]):
+                errors["room_type"] = "Regular rooms require rows, tables per row, and seats per table."
+            self.num_systems = None
+            self.seats_per_batch = None
+            self.total_seats = None
+            self.conference_layout = ""
+        elif self.room_type == "lab":
+            if not all([self.num_systems, self.seats_per_batch]):
+                errors["room_type"] = "Lab rooms require systems and seats per batch."
+            elif self.seats_per_batch > self.num_systems:
+                errors["seats_per_batch"] = "Seats per batch cannot exceed the number of systems."
+            self.num_rows = None
+            self.tables_per_row = None
+            self.seats_per_table = None
+            self.total_seats = None
+            self.conference_layout = ""
+        elif self.room_type == "conference":
+            try:
+                rows = self.get_conference_rows()
+            except ValidationError as exc:
+                errors.update(exc.message_dict)
+                rows = []
+            if not rows and not self.total_seats:
+                errors["conference_layout"] = "Conference rooms require a seat layout or total seat count."
+            if rows:
+                self.total_seats = sum(rows)
+            self.num_rows = None
+            self.tables_per_row = None
+            self.seats_per_table = None
+            self.seats_per_batch = None
+        else:
+            errors["room_type"] = "Unsupported room type."
+
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         # Always compute capacity before saving
@@ -202,6 +289,12 @@ class Room(models.Model):
     class Meta:
         db_table = "room"
         ordering = ["room_name"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(capacity__gte=0),
+                name="room_capacity_gte_0",
+            ),
+        ]
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -211,6 +304,10 @@ class Seat(models.Model):
     room        = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="seats")
     seat_number = models.PositiveIntegerField()
 
+    def clean(self):
+        if self.room_id and self.seat_number > self.room.capacity:
+            raise ValidationError({"seat_number": "Seat number cannot exceed room capacity."})
+
     def __str__(self):
         return f"{self.room.room_name} — Seat {self.seat_number}"
 
@@ -218,6 +315,12 @@ class Seat(models.Model):
         db_table      = "seat"
         unique_together = [("room", "seat_number")]
         ordering      = ["room", "seat_number"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(seat_number__gte=1),
+                name="seat_number_gte_1",
+            ),
+        ]
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -250,12 +353,107 @@ class Mentor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def is_available(self, session_date, time_slot, exclude_session_id=None):
+        if not session_date or not time_slot:
+            return True
+
+        sessions = self.session_bookings.filter(date=session_date, time_slot=time_slot)
+        if exclude_session_id:
+            sessions = sessions.exclude(id=exclude_session_id)
+        return not sessions.exists()
+
     def __str__(self):
         return f"{self.name} [{self.mentor_code}]"
 
     class Meta:
         db_table = "mentor"
         ordering = ["name"]
+
+
+class Session(models.Model):
+    batch = models.ForeignKey(
+        Batch,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="sessions",
+    )
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="session_bookings",
+    )
+    mentor = models.ForeignKey(
+        Mentor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="session_bookings",
+    )
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    days_of_week = models.CharField(max_length=50, blank=True)
+    date = models.DateField(null=True, blank=True)
+    time_slot = models.CharField(max_length=30, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        errors = {}
+        has_date = bool(self.date)
+        has_time_slot = bool(self.time_slot)
+        has_range = bool(self.start_date or self.end_date)
+
+        if has_date != has_time_slot:
+            errors["time_slot"] = "Session date and time slot must be provided together."
+        if bool(self.start_date) != bool(self.end_date):
+            errors["end_date"] = "Start date and end date must both be provided for range sessions."
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            errors["end_date"] = "End date must be on or after start date."
+        if has_date and has_range:
+            errors["date"] = "Choose either a specific session slot or a date range, not both."
+        if self.date and not self.batch_id:
+            errors["batch"] = "A scheduled session must be linked to a batch."
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        slot = f"{self.date} [{self.time_slot}]" if self.date else f"{self.start_date} to {self.end_date}"
+        batch_code = self.batch.batch_code if self.batch else "No batch"
+        return f"{batch_code} in {self.room.room_name} ({slot})"
+
+    class Meta:
+        db_table = "session"
+        ordering = ["-date", "time_slot", "-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(date__isnull=True, time_slot="") | models.Q(date__isnull=False) & ~models.Q(time_slot="")),
+                name="session_date_timeslot_pairing",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(start_date__isnull=True, end_date__isnull=True) | models.Q(start_date__isnull=False, end_date__isnull=False),
+                name="session_range_pairing",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(start_date__isnull=True, end_date__isnull=True) | models.Q(end_date__gte=models.F("start_date")),
+                name="session_end_date_after_start_date",
+            ),
+            models.UniqueConstraint(
+                fields=["batch", "date", "time_slot"],
+                condition=models.Q(batch__isnull=False, date__isnull=False) & ~models.Q(time_slot=""),
+                name="unique_session_batch_date_timeslot",
+            ),
+            models.UniqueConstraint(
+                fields=["room", "date", "time_slot"],
+                condition=models.Q(date__isnull=False) & ~models.Q(time_slot=""),
+                name="unique_session_room_date_timeslot",
+            ),
+            models.UniqueConstraint(
+                fields=["mentor", "date", "time_slot"],
+                condition=models.Q(mentor__isnull=False, date__isnull=False) & ~models.Q(time_slot=""),
+                name="unique_session_mentor_date_timeslot",
+            ),
+        ]
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -265,6 +463,13 @@ class Allocation(models.Model):
     student     = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="allocations")
     room        = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="allocations")
     seat_number = models.PositiveIntegerField()
+    session     = models.ForeignKey(
+        Session,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="allocations",
+    )
 
     # ── Batch link (Rule 3 & 4) ──────────────────────────────────
     # Stored directly for efficient constraint queries and reporting.
@@ -306,6 +511,29 @@ class Allocation(models.Model):
         help_text="Instructor assigned to this session. Required for new sessions.",
     )
 
+    def clean(self):
+        errors = {}
+
+        if self.room_id and self.seat_number > self.room.capacity:
+            errors["seat_number"] = "Seat number cannot exceed room capacity."
+        if self.student_id and self.batch_id and self.student.batch_id != self.batch_id:
+            errors["batch"] = "Allocation batch must match the student's batch."
+        if self.date and not self.time_slot:
+            errors["time_slot"] = "A time slot is required when a session date is set."
+        if self.session_id:
+            if self.session.room_id != self.room_id:
+                errors["room"] = "Allocation room must match the linked session room."
+            if self.batch_id and self.session.batch_id and self.session.batch_id != self.batch_id:
+                errors["batch"] = "Allocation batch must match the linked session batch."
+            if self.date and self.session.date and self.session.date != self.date:
+                errors["date"] = "Allocation date must match the linked session date."
+            if self.time_slot and self.session.time_slot and self.session.time_slot != self.time_slot:
+                errors["time_slot"] = "Allocation time slot must match the linked session time slot."
+            if self.mentor_id and self.session.mentor_id and self.session.mentor_id != self.mentor_id:
+                errors["mentor"] = "Allocation mentor must match the linked session mentor."
+        if errors:
+            raise ValidationError(errors)
+
     def __str__(self):
         slot = f" | {self.date} {self.time_slot}" if self.date else ""
         return (
@@ -317,6 +545,32 @@ class Allocation(models.Model):
     class Meta:
         db_table = "allocation"
         ordering = ["room", "seat_number", "start_date"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(seat_number__gte=1),
+                name="allocation_seat_number_gte_1",
+            ),
+            models.UniqueConstraint(
+                fields=["student", "date", "time_slot"],
+                condition=models.Q(date__isnull=False) & ~models.Q(time_slot=""),
+                name="unique_allocation_student_date_timeslot",
+            ),
+            models.UniqueConstraint(
+                fields=["room", "seat_number", "date", "time_slot"],
+                condition=models.Q(date__isnull=False) & ~models.Q(time_slot=""),
+                name="unique_allocation_room_seat_date_timeslot",
+            ),
+            models.UniqueConstraint(
+                fields=["session", "student"],
+                condition=models.Q(session__isnull=False),
+                name="unique_allocation_session_student",
+            ),
+            models.UniqueConstraint(
+                fields=["session", "seat_number"],
+                condition=models.Q(session__isnull=False),
+                name="unique_allocation_session_seat",
+            ),
+        ]
         # ── Design note on Rule 3 constraints ───────────────────────────
         # Rule 3 (one batch per room per slot, one room per batch per slot)
         # is enforced at the VIEW and API layer (pre-insert query checks)
