@@ -7,8 +7,10 @@ const MentorDetail = () => {
     const navigate = useNavigate();
     
     const [mentor, setMentor] = useState(null);
-    const [allocations, setAllocations] = useState([]);
+    const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [formData, setFormData] = useState({ name: '', mentor_code: '', department: '', email: '' });
     
     // Filters
     const [dateFilter, setDateFilter] = useState('');
@@ -16,17 +18,17 @@ const MentorDetail = () => {
 
     const fetchData = () => {
         setLoading(true);
-        // Fetch specific mentor
         fetch(`http://127.0.0.1:8000/mentors/${mentorId}/`)
             .then(res => res.json())
-            .then(data => setMentor(data.mentor))
-            .catch(console.error);
-
-        // Fetch all allocations to filter locally
-        fetch('http://127.0.0.1:8000/allocations/')
-            .then(res => res.json())
             .then(data => {
-                setAllocations(data.allocations || []);
+                setMentor(data.mentor);
+                setSessions(data.sessions || []);
+                setFormData({
+                    name: data.mentor.name,
+                    mentor_code: data.mentor.mentor_code,
+                    department: data.mentor.department || '',
+                    email: data.mentor.email || ''
+                });
                 setLoading(false);
             })
             .catch(err => {
@@ -41,33 +43,8 @@ const MentorDetail = () => {
 
     // Group allocations into sessions for this mentor
     const mySessions = useMemo(() => {
-        if (!mentor) return [];
-        
-        // Filter by this mentor's ID or code
-        const mentorAllocations = allocations.filter(a => a.mentor_id === parseInt(mentorId, 10));
-        
-        // Group by Session (Room + Date + TimeSlot + Batch)
-        const sessionMap = {};
-        mentorAllocations.forEach(a => {
-            const key = `${a.room_name}|${a.date}|${a.time_slot}|${a.batch_code}`;
-            if (!sessionMap[key]) {
-                sessionMap[key] = {
-                    room: a.room_name,
-                    date: a.date,
-                    time_slot: a.time_slot,
-                    batch: a.batch_code,
-                    studentCount: 0,
-                    id: a.id // Reference id
-                };
-            }
-            sessionMap[key].studentCount++;
-        });
-        
-        return Object.values(sessionMap).sort((a, b) => {
-            // Sort by date descending
-            return new Date(b.date) - new Date(a.date);
-        });
-    }, [allocations, mentor, mentorId]);
+        return sessions;
+    }, [sessions]);
 
     const filteredSessions = useMemo(() => {
         return mySessions.filter(s => {
@@ -114,6 +91,24 @@ const MentorDetail = () => {
         return <div style={{ padding: 40, textAlign: 'center' }}>Mentor not found.</div>;
     }
 
+    const handleEdit = (e) => {
+        e.preventDefault();
+        fetch(`http://127.0.0.1:8000/mentors/${mentorId}/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) alert(data.error);
+            else {
+                setIsEditModalOpen(false);
+                fetchData();
+            }
+        })
+        .catch(console.error);
+    };
+
     return (
         <div className="fade-in">
             {/* Header */}
@@ -145,6 +140,20 @@ const MentorDetail = () => {
                                 </span>
                             )}
                         </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button className="btn btn-outline" onClick={() => setIsEditModalOpen(true)}>Edit Profile</button>
+                        <button
+                            className="btn btn-outline"
+                            style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b' }}
+                            onClick={() => {
+                                if (window.confirm('Delete mentor profile? All their sessions will be unlinked.')) {
+                                    fetch(`http://127.0.0.1:8000/mentors/${mentorId}/delete/`, { method: 'DELETE' })
+                                        .then(res => res.json())
+                                        .then(() => navigate('/mentors'));
+                                }
+                            }}
+                        >Delete</button>
                     </div>
                 </div>
             </header>
@@ -199,14 +208,14 @@ const MentorDetail = () => {
                                                 <td style={{ padding: '14px 16px' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                         <MapPin size={14} color="var(--text-muted)" />
-                                                        {session.room}
+                                                        {session.room_name}
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '14px 16px' }}>
-                                                    <span className="badge badge-blue">{session.batch}</span>
+                                                    <span className="badge badge-blue">{session.batch_code}</span>
                                                 </td>
                                                 <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{session.studentCount}</div>
+                                                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{session.student_count}</div>
                                                 </td>
                                             </tr>
                                         ))
@@ -288,6 +297,44 @@ const MentorDetail = () => {
                 </div>
 
             </div>
+
+            {/* Edit Mentor Modal */}
+            {isEditModalOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setIsEditModalOpen(false)}>
+                    <div className="card fade-in" style={{ width: '100%', maxWidth: 500, padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Edit Mentor Profile</h2>
+                            <button onClick={() => setIsEditModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                <Briefcase size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleEdit} style={{ padding: '24px' }}>
+                            <div className="form-group">
+                                <label className="form-label">Full Name</label>
+                                <input type="text" className="form-control" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Mentor Code</label>
+                                <input type="text" className="form-control" required value={formData.mentor_code} onChange={e => setFormData({ ...formData, mentor_code: e.target.value })} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div className="form-group">
+                                    <label className="form-label">Department</label>
+                                    <input type="text" className="form-control" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Email</label>
+                                    <input type="email" className="form-control" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Changes</button>
+                                <button type="button" className="btn btn-outline" onClick={() => setIsEditModalOpen(false)} style={{ flex: 1 }}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
