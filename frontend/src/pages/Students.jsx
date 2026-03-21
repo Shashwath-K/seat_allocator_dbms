@@ -95,62 +95,85 @@ const Students = () => {
             </div>
 
             {activeTab === 'list' && (
-                <div className="card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <div style={{ position: 'relative', width: '300px' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '24px', borderBottom: '1px solid var(--surface-border)', background: 'rgba(255,255,255,0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', width: '320px' }}>
+                            <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
                                 type="text"
                                 className="form-control"
                                 placeholder="Search by USN or Name..."
-                                style={{ paddingLeft: '38px' }}
+                                style={{ paddingLeft: 48, background: 'white' }}
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 500 }}>
+                            Total: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{students.length}</span> students
+                        </div>
                     </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>USN</th>
-                                <th>Name</th>
-                                <th>Batch</th>
-                                <th>Gender</th>
-                                <th>Status</th>
-                                <th style={{ width: '80px' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students
-                                .filter(s =>
-                                    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                    s.usn.toLowerCase().includes(searchTerm.toLowerCase())
-                                )
-                                .map(s => (
-                                <tr key={s.id}>
-                                    <td><strong>{s.usn}</strong></td>
-                                    <td>{s.name}</td>
-                                    <td>{s.batch__batch_code || '—'}</td>
-                                    <td>{s.gender}</td>
-                                    <td>
-                                        <span className={`badge ${s.is_present ? 'badge-green' : 'badge-gray'}`}>
-                                            {s.is_present ? 'Present' : 'Absent'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => handleDeleteStudent(s.id, s.name)}
-                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}
-                                            title="Delete student"
-                                        >✕</button>
-                                    </td>
+                    <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student USN</th>
+                                    <th>Full Name</th>
+                                    <th>Batch Code</th>
+                                    <th>Gender</th>
+                                    <th>Presence</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
                                 </tr>
-                            ))}
-                            {students.length === 0 && (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No students found in database.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {students
+                                    .filter(s =>
+                                        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        s.usn.toLowerCase().includes(searchTerm.toLowerCase())
+                                    )
+                                    .map(s => (
+                                    <tr key={s.id}>
+                                        <td>
+                                            <code style={{ 
+                                                background: 'rgba(79, 70, 229, 0.05)', 
+                                                padding: '4px 8px', borderRadius: 6, 
+                                                color: 'var(--primary)', fontWeight: 700,
+                                                fontSize: '0.8125rem'
+                                            }}>{s.usn}</code>
+                                        </td>
+                                        <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{s.name}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                                                {s.batch__batch_code || '—'}
+                                            </div>
+                                        </td>
+                                        <td>{s.gender === 'M' ? 'Male' : s.gender === 'F' ? 'Female' : 'Other'}</td>
+                                        <td>
+                                            <span className={`badge ${s.is_present ? 'badge-green' : 'badge-gray'}`}>
+                                                {s.is_present ? 'Present' : 'Absent'}
+                                            </span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <button
+                                                className="btn btn-outline"
+                                                onClick={() => handleDeleteStudent(s.id, s.name)}
+                                                style={{ 
+                                                    padding: '6px 10px', fontSize: '0.75rem', height: 'auto',
+                                                    borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--danger)',
+                                                    background: 'white'
+                                                }}
+                                                title="Delete student"
+                                            >
+                                                ✕
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {students.length === 0 && (
+                                    <tr><td colSpan="6" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>No students found in database.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
