@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, User, Mail, Briefcase, GraduationCap, X } from 'lucide-react';
+import { Search, Plus, Filter, Mail, Briefcase, GraduationCap, X, Pencil, Trash2 } from 'lucide-react';
 
 const Mentors = () => {
     const navigate = useNavigate();
@@ -9,6 +9,7 @@ const Mentors = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [deptFilter, setDeptFilter] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editMentor, setEditMentor] = useState(null); // null = create, object = edit
     
     // Form state
     const [formData, setFormData] = useState({
@@ -55,8 +56,11 @@ const Mentors = () => {
 
     const handleCreate = (e) => {
         e.preventDefault();
-        fetch('http://127.0.0.1:8000/mentors/', {
-            method: 'POST',
+        const isEdit = !!editMentor;
+        const url = isEdit ? `http://127.0.0.1:8000/mentors/${editMentor.id}/` : 'http://127.0.0.1:8000/mentors/';
+        const method = isEdit ? 'PUT' : 'POST';
+        fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
@@ -67,10 +71,27 @@ const Mentors = () => {
             } else {
                 setFormData({ name: '', mentor_code: '', department: '', email: '' });
                 setIsModalOpen(false);
+                setEditMentor(null);
                 fetchData();
             }
         })
-        .catch(err => alert('Failed to create mentor'));
+        .catch(err => alert('Failed to save mentor'));
+    };
+
+    const openEdit = (mentor, e) => {
+        e.stopPropagation();
+        setEditMentor(mentor);
+        setFormData({ name: mentor.name, mentor_code: mentor.mentor_code, department: mentor.department || '', email: mentor.email || '' });
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = (mentor, e) => {
+        e.stopPropagation();
+        if (!window.confirm(`Delete mentor "${mentor.name}"? Their sessions will be unlinked.`)) return;
+        fetch(`http://127.0.0.1:8000/mentors/${mentor.id}/delete/`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => { if (!data.error) fetchData(); else alert(data.error); })
+            .catch(console.error);
     };
 
     return (
@@ -169,7 +190,21 @@ const Mentors = () => {
                                         </span>
                                     </td>
                                     <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                                        <button className="btn btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem' }}>View Details</button>
+                                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                            <button
+                                                className="btn btn-outline"
+                                                style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                                                onClick={e => openEdit(mentor, e)}
+                                            >
+                                                <Pencil size={13} style={{ marginRight: 4 }} />Edit
+                                            </button>
+                                            <button
+                                                style={{ padding: '4px 10px', fontSize: '0.78rem', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, color: '#991b1b', cursor: 'pointer' }}
+                                                onClick={e => handleDelete(mentor, e)}
+                                            >
+                                                <Trash2 size={13} style={{ marginRight: 4 }} />Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -188,9 +223,9 @@ const Mentors = () => {
                     <div className="card fade-in" style={{ width: '100%', maxWidth: 500, padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <GraduationCap color="var(--primary-color)" /> Add New Mentor
+                                <GraduationCap color="var(--primary-color)" /> {editMentor ? 'Edit Mentor' : 'Add New Mentor'}
                             </h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                            <button onClick={() => { setIsModalOpen(false); setEditMentor(null); setFormData({ name: '', mentor_code: '', department: '', email: '' }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -244,8 +279,8 @@ const Mentors = () => {
                             </div>
 
                             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Create Mentor</button>
-                                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)} style={{ flex: 1 }}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>{editMentor ? 'Update Mentor' : 'Create Mentor'}</button>
+                                <button type="button" className="btn btn-outline" onClick={() => { setIsModalOpen(false); setEditMentor(null); setFormData({ name: '', mentor_code: '', department: '', email: '' }); }} style={{ flex: 1 }}>Cancel</button>
                             </div>
                         </form>
                     </div>
