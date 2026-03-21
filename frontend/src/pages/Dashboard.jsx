@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, MonitorPlay, CalendarPlus } from 'lucide-react';
+import { Users, UserCheck, MonitorPlay, CalendarPlus, GraduationCap } from 'lucide-react';
 
 const Dashboard = () => {
     const [data, setData] = useState({
@@ -7,7 +7,8 @@ const Dashboard = () => {
         active_batches: 0,
         total_students: 0,
         total_rooms: 0,
-        total_allocated: 0
+        total_allocated: 0,
+        total_mentors: 0
     });
 
     useEffect(() => {
@@ -24,6 +25,7 @@ const Dashboard = () => {
         { label: "Active Students", value: data.total_students, icon: UserCheck, color: "#27ae60" },
         { label: "Classrooms", value: data.total_rooms, icon: MonitorPlay, color: "#8e44ad" },
         { label: "Allocated Seats", value: data.total_allocated, icon: CalendarPlus, color: "#e67e22" },
+        { label: "Mentors", value: data.total_mentors, icon: GraduationCap, color: "#e84393" },
     ];
 
     return (
