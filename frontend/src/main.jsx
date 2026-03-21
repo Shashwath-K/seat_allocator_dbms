@@ -12,6 +12,7 @@ import RoomAllotmentDetail from './pages/RoomAllotmentDetail.jsx'
 import Database from './pages/Database.jsx'
 import Mentors from './pages/Mentors.jsx'
 import MentorDetail from './pages/MentorDetail.jsx'
+import AIAllocator from './pages/AIAllocator.jsx'
 import './index.css'
 
 const router = createBrowserRouter([
@@ -58,6 +59,10 @@ const router = createBrowserRouter([
       {
         path: "/mentors/:mentorId",
         element: <MentorDetail />
+      },
+      {
+        path: "/ai",
+        element: <AIAllocator />
       }
     ]
   }
