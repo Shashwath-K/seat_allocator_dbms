@@ -107,25 +107,25 @@ const Mentors = () => {
             </header>
 
             {/* Filters Bar */}
-            <div className="card" style={{ marginBottom: 24, padding: '16px 20px' }}>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 260, position: 'relative' }}>
-                        <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div className="card" style={{ marginBottom: 32, padding: '20px 24px' }}>
+                <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 280, position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input 
                             type="text" 
                             className="form-control" 
                             placeholder="Search by name or code..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: 40 }}
+                            style={{ paddingLeft: 48, background: 'rgba(0,0,0,0.02)' }}
                         />
                     </div>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Filter size={18} color="var(--primary-color)" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <Filter size={18} style={{ color: 'var(--primary)' }} />
                         <select 
                             className="form-control" 
-                            style={{ width: 180 }}
+                            style={{ width: 200, background: 'rgba(0,0,0,0.02)' }}
                             value={deptFilter}
                             onChange={(e) => setDeptFilter(e.target.value)}
                         >
@@ -135,86 +135,104 @@ const Mentors = () => {
                         </select>
                     </div>
                     
-                    <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        Showing <strong>{filteredMentors.length}</strong> mentors
+                    <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 500 }}>
+                        Showing <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{filteredMentors.length}</span> mentors
                     </div>
                 </div>
             </div>
 
             {/* Mentors Table */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                            <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 600 }}>Mentor Name</th>
-                            <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 600 }}>Code</th>
-                            <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 600 }}>Department</th>
-                            <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 600 }}>Email</th>
-                            <th style={{ padding: '14px 20px', textAlign: 'right', fontWeight: 600 }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
+                <div className="table-container">
+                    <table>
+                        <thead>
                             <tr>
-                                <td colSpan="5" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading mentors...</td>
+                                <th>Mentor Name</th>
+                                <th>Code</th>
+                                <th>Department</th>
+                                <th>Email</th>
+                                <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
-                        ) : filteredMentors.length > 0 ? (
-                            filteredMentors.map(mentor => (
-                                <tr 
-                                    key={mentor.id} 
-                                    className="table-row-hover"
-                                    onClick={() => navigate(`/mentors/${mentor.id}`)}
-                                    style={{ cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}
-                                >
-                                    <td style={{ padding: '14px 20px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem' }}>
-                                                {mentor.name.substring(0, 2).toUpperCase()}
-                                            </div>
-                                            <span style={{ fontWeight: 500 }}>{mentor.name}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '14px 20px' }}>
-                                        <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, color: 'var(--primary-color)' }}>{mentor.mentor_code}</code>
-                                    </td>
-                                    <td style={{ padding: '14px 20px' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <Briefcase size={14} color="var(--text-muted)" />
-                                            {mentor.department || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '14px 20px' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                            <Mail size={14} />
-                                            {mentor.email || '—'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                                            <button
-                                                className="btn btn-outline"
-                                                style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                                                onClick={e => openEdit(mentor, e)}
-                                            >
-                                                <Pencil size={13} style={{ marginRight: 4 }} />Edit
-                                            </button>
-                                            <button
-                                                style={{ padding: '4px 10px', fontSize: '0.78rem', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, color: '#991b1b', cursor: 'pointer' }}
-                                                onClick={e => handleDelete(mentor, e)}
-                                            >
-                                                <Trash2 size={13} style={{ marginRight: 4 }} />Delete
-                                            </button>
-                                        </div>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="fade-in">Loading mentors...</div>
                                     </td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="5" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No mentors found matching your criteria.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            ) : filteredMentors.length > 0 ? (
+                                filteredMentors.map(mentor => (
+                                    <tr 
+                                        key={mentor.id} 
+                                        onClick={() => navigate(`/mentors/${mentor.id}`)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                                <div style={{ 
+                                                    width: 40, height: 40, borderRadius: '12px', 
+                                                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', 
+                                                    color: '#fff', display: 'flex', alignItems: 'center', 
+                                                    justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem',
+                                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                                                }}>
+                                                    {mentor.name.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{mentor.name}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <code style={{ 
+                                                background: 'rgba(79, 70, 229, 0.05)', 
+                                                padding: '4px 8px', borderRadius: 6, 
+                                                color: 'var(--primary)', fontWeight: 700,
+                                                fontSize: '0.8125rem', border: '1px solid rgba(79, 70, 229, 0.1)'
+                                            }}>{mentor.mentor_code}</code>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main)', fontWeight: 500 }}>
+                                                <Briefcase size={14} style={{ color: 'var(--text-muted)' }} />
+                                                {mentor.department || 'N/A'}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                                <Mail size={14} />
+                                                {mentor.email || '—'}
+                                            </div>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                                <button
+                                                    className="btn btn-outline"
+                                                    style={{ padding: '6px 12px', fontSize: '0.75rem', height: 'auto' }}
+                                                    onClick={e => openEdit(mentor, e)}
+                                                >
+                                                    <Pencil size={14} style={{ marginRight: 4 }} />Edit
+                                                </button>
+                                                <button
+                                                    className="btn btn-outline"
+                                                    style={{ 
+                                                        padding: '6px 12px', fontSize: '0.75rem', height: 'auto',
+                                                        borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--danger)'
+                                                    }}
+                                                    onClick={e => handleDelete(mentor, e)}
+                                                >
+                                                    <Trash2 size={14} style={{ marginRight: 4 }} />Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>No mentors found matching your criteria.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Create Mentor Modal */}
