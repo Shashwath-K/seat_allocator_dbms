@@ -235,60 +235,76 @@ const Rooms = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
                         {rooms.filter(r => {
                             const matchesSearch = r.room_name.toLowerCase().includes(searchTerm.toLowerCase());
                             const matchesType = filterType === 'all' || r.room_type === filterType;
                             return matchesSearch && matchesType;
                         }).map(r => (
-                            <div key={r.id} className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', transition: 'transform 0.2s', border: '1px solid transparent', cursor: 'pointer' }}
-                                onMouseOver={(e) => e.currentTarget.style.border = '1px solid var(--primary-color)'}
-                                onMouseOut={(e) => e.currentTarget.style.border = '1px solid transparent'}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div>
-                                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: 'var(--text-color)' }}>{r.room_name}</h3>
-                                        <span className={`badge ${r.room_type === 'regular' ? 'badge-blue' : r.room_type === 'conference' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'capitalize' }}>
-                                            {r.room_type}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 6 }}>
-                                        <button
-                                            onClick={e => handleGenerateSeats(r, e)}
-                                            title="Generate Seats"
-                                            style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '0.72rem', color: '#166534' }}
-                                        >⚙ Gen Seats</button>
-                                        <button
-                                            onClick={e => handleDeleteRoom(r, e)}
-                                            title="Delete Room"
-                                            style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '0.72rem', color: '#991b1b' }}
-                                        >✕ Delete</button>
+                            <div key={r.id} className="card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ padding: '24px', background: 'rgba(255,255,255,0.4)', borderBottom: '1px solid var(--surface-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <h3 style={{ margin: '0 0 6px 0', fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>{r.room_name}</h3>
+                                            <span className={`badge ${r.room_type === 'regular' ? 'badge-blue' : r.room_type === 'conference' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'capitalize' }}>
+                                                {r.room_type}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button
+                                                onClick={e => handleGenerateSeats(r, e)}
+                                                title="Generate Seats"
+                                                className="btn btn-outline"
+                                                style={{ padding: '6px 10px', fontSize: '0.75rem', height: 'auto', background: 'white' }}
+                                            >⚙️</button>
+                                            <button
+                                                onClick={e => handleDeleteRoom(r, e)}
+                                                title="Delete Room"
+                                                className="btn btn-outline"
+                                                style={{ padding: '6px 10px', fontSize: '0.75rem', height: 'auto', borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--danger)', background: 'white' }}
+                                            >✕</button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ flex: '1' }}>
-                                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                <div style={{ padding: '24px', flex: '1' }}>
+                                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)' }}>
                                         {r.room_type === 'regular' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rows:</span> <strong>{r.num_rows}</strong></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tables per Row:</span> <strong>{r.tables_per_row}</strong></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Seats per Table:</span> <strong>{r.seats_per_table}</strong></div>
-                                                <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }}></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-color)' }}><span>Est Capacity:</span> <strong>{r.num_rows * r.tables_per_row * r.seats_per_table}</strong></div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Structure</span>
+                                                    <span style={{ fontWeight: 600 }}>{r.num_rows}r × {r.tables_per_row}t × {r.seats_per_table}s</span>
+                                                </div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Estimated Capacity</span>
+                                                    <strong style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>{r.num_rows * r.tables_per_row * r.seats_per_table}</strong>
+                                                </div>
                                             </div>
                                         )}
                                         {r.room_type === 'lab' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lab Systems:</span> <strong>{r.num_systems}</strong></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Capacity Limit:</span> <strong>{r.seats_per_batch} per batch</strong></div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Lab Systems</span>
+                                                    <span style={{ fontWeight: 600 }}>{r.num_systems} Nodes</span>
+                                                </div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Batch Limit</span>
+                                                    <strong style={{ fontSize: '1.25rem', color: 'var(--success)' }}>{r.seats_per_batch}</strong>
+                                                </div>
                                             </div>
                                         )}
                                         {r.room_type === 'conference' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span>Layout Pattern:</span>
-                                                    <div style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', letterSpacing: '1px' }}>{r.conference_layout}</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Layout Pattern</span>
+                                                    <span style={{ fontWeight: 600, fontFamily: 'monospace', background: 'white', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--surface-border)' }}>{r.conference_layout}</span>
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-color)' }}><span>Est Capacity:</span> <strong>{r.conference_layout.split(',').reduce((a, b) => a + (parseInt(b) || 0), 0)}</strong></div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Seats</span>
+                                                    <strong style={{ fontSize: '1.25rem', color: 'var(--purple)' }}>{r.conference_layout.split(',').reduce((a, b) => a + (parseInt(b) || 0), 0)}</strong>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
