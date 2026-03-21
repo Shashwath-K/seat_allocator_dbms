@@ -118,26 +118,22 @@ const Allotment = () => {
                 <button className={`tab ${activeTab === 'create' ? 'active' : ''}`} onClick={() => setActiveTab('create')}>
                     <CalendarPlus size={16} style={{ marginRight: '8px', verticalAlign: 'text-bottom' }} /> Assign Batch
                 </button>
-            </div>
-
-            {activeTab === 'view' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div className="card" style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '16px', flexWrap: 'wrap' }}>
-                        <div className="form-group" style={{ flex: '1', minWidth: '250px', marginBottom: 0 }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)' }} />
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search scheduled facility..."
-                                    style={{ paddingLeft: '40px' }}
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
+            </div>            {activeTab === 'view' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="card" style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '20px 24px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1', minWidth: '300px', position: 'relative' }}>
+                            <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Search scheduled facility..."
+                                style={{ paddingLeft: 48, background: 'rgba(0,0,0,0.02)' }}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <div className="form-group" style={{ width: '200px', marginBottom: 0 }}>
-                            <select className="form-control" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                        <div style={{ width: '220px' }}>
+                            <select className="form-control" style={{ background: 'rgba(0,0,0,0.02)' }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                                 <option value="all">All Room Types</option>
                                 <option value="regular">Regular Classes</option>
                                 <option value="lab">Laboratories</option>
@@ -146,66 +142,66 @@ const Allotment = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
                         {roomGrids.filter(rg => {
                             const matchesSearch = rg.name.toLowerCase().includes(searchTerm.toLowerCase());
                             const matchesType = filterType === 'all' || rg.type === filterType;
                             return matchesSearch && matchesType;
                         }).map(rg => (
-                            <div key={rg.id} className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', transition: 'transform 0.2s', border: '1px solid transparent', cursor: 'pointer' }}
-                                onMouseOver={(e) => e.currentTarget.style.border = '1px solid var(--primary-color)'}
-                                onMouseOut={(e) => e.currentTarget.style.border = '1px solid transparent'}
+                            <div key={rg.id} className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px', cursor: 'pointer' }}
                                 onClick={() => navigate(`/allotment/${rg.id}`)}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div>
-                                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: 'var(--text-color)' }}>{rg.name}</h3>
-                                        <span className={`badge ${rg.type === 'regular' ? 'badge-blue' : rg.type === 'conference' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'capitalize' }}>
+                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>{rg.name}</h3>
+                                        <span className={`badge ${rg.type === 'regular' ? 'badge-blue' : rg.type === 'conference' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'capitalize', padding: '4px 10px' }}>
                                             {rg.type}
                                         </span>
                                     </div>
                                     <div style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                                            Generated: {rg.seats_generated} / {rg.capacity}
+                                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                                            LAYOUT STATUS
                                         </div>
-                                        {rg.seats_generated === 0 && (
-                                            <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => handleGenerateSeats(rg.id)}>
+                                        {rg.seats_generated > 0 ? (
+                                            <div className="badge badge-green" style={{ fontSize: '0.75rem' }}>Mapped</div>
+                                        ) : (
+                                            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', height: 'auto' }} onClick={() => handleGenerateSeats(rg.id)}>
                                                 Generate
                                             </button>
                                         )}
                                     </div>
                                 </div>
                                 <div style={{ flex: '1' }}>
-                                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)', fontSize: '0.9375rem', color: 'var(--text-main)' }}>
                                         {rg.type === 'regular' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rows:</span> <strong>{rg.num_rows}</strong></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tables per Row:</span> <strong>{rg.tables_per_row}</strong></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Seats per Table:</span> <strong>{rg.seats_per_table}</strong></div>
-                                                <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }}></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-color)' }}><span>Est Capacity:</span> <strong>{rg.capacity}</strong></div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Structure:</span> <span style={{ fontWeight: 600 }}>{rg.num_rows} × {rg.tables_per_row} × {rg.seats_per_table}</span></div>
+                                                <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 700 }}><span>Map Capacity:</span> <span>{rg.capacity} Seats</span></div>
                                             </div>
                                         )}
                                         {rg.type === 'lab' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lab Systems:</span> <strong>{rg.num_systems}</strong></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Capacity Limit:</span> <strong>{rg.seats_per_batch} per batch</strong></div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Systems count:</span> <span style={{ fontWeight: 600 }}>{rg.num_systems}</span></div>
+                                                <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 700 }}><span>Batch Limit:</span> <span>{rg.seats_per_batch}</span></div>
                                             </div>
                                         )}
                                         {rg.type === 'conference' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span>Layout Pattern:</span>
-                                                    <div style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', letterSpacing: '1px' }}>{rg.conference_layout}</div>
+                                                    <span>Pattern:</span>
+                                                    <code style={{ background: 'rgba(79, 70, 229, 0.05)', padding: '2px 8px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>{rg.conference_layout}</code>
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-color)' }}><span>Est Capacity:</span> <strong>{rg.capacity}</strong></div>
+                                                <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 700 }}><span>Map Capacity:</span> <span>{rg.capacity} Seats</span></div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                                    <span style={{ color: 'var(--primary-color)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                        View Live Map <ArrowRight size={14} />
+                                <div style={{ borderTop: '1px solid var(--surface-border)', paddingTop: '16px', textAlign: 'center' }}>
+                                    <span style={{ color: 'var(--primary)', fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                        Open Seat Matrix <ArrowRight size={16} />
                                     </span>
                                 </div>
                             </div>
@@ -215,10 +211,12 @@ const Allotment = () => {
                             const matchesType = filterType === 'all' || rg.type === filterType;
                             return matchesSearch && matchesType;
                         }).length === 0 && (
-                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                                    {roomGrids.length === 0 ? "No rooms configured for layout matrix display." : "No scheduled facilities match your search criteria."}
-                                </div>
-                            )}
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', background: 'rgba(255,255,255,0.4)', borderRadius: '16px', border: '2px dashed var(--surface-border)', color: 'var(--text-muted)' }}>
+                                <div style={{ marginBottom: '16px' }}><Calendar size={48} style={{ opacity: 0.2 }} /></div>
+                                <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No rooms configured for layout matrix display.</p>
+                                <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => navigate('/rooms')}>Configure Rooms</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
