@@ -56,7 +56,8 @@ def home(request):
 @csrf_exempt
 def add_batch(request):
     if request.method == "GET":
-        return JsonResponse({"batches": list(Batch.objects.values())})
+        batches = list(Batch.objects.annotate(student_count=Count('students')).values())
+        return JsonResponse({"batches": batches})
 
     if request.method == "POST":
         try:
