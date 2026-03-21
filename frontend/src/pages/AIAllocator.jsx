@@ -100,60 +100,92 @@ const AIAllocator = () => {
             </header>
 
             {/* Chat window */}
-            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '1px solid var(--surface-border)', background: 'rgba(255, 255, 255, 0.4)' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
                     {messages.map((msg, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 10 }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 14 }}>
                             {msg.role === 'assistant' && (
-                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <Bot size={18} />
+                                <div style={{ 
+                                    width: 40, height: 40, borderRadius: '12px', 
+                                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', 
+                                    color: '#fff', display: 'flex', alignItems: 'center', 
+                                    justifyContent: 'center', flexShrink: 0,
+                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                                }}>
+                                    <Bot size={20} />
                                 </div>
                             )}
                             <div style={{
                                 maxWidth: '75%',
-                                padding: '12px 16px',
-                                borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                                background: msg.role === 'user' ? 'var(--primary-color)' : '#f1f5f9',
-                                color: msg.role === 'user' ? '#fff' : 'var(--text-color)',
-                                fontSize: '0.9rem',
+                                padding: '16px 20px',
+                                borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+                                background: msg.role === 'user' ? 'var(--primary)' : 'white',
+                                color: msg.role === 'user' ? '#fff' : 'var(--text-main)',
+                                fontSize: '0.9375rem',
                                 lineHeight: 1.6,
+                                boxShadow: msg.role === 'user' ? '0 4px 15px rgba(79, 70, 229, 0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
+                                border: msg.role === 'user' ? 'none' : '1px solid var(--surface-border)'
                             }}>
                                 {formatContent(msg.content)}
-
+                                
                                 {/* Confirmation Card for write proposals */}
                                 {msg.requiresConfirmation && pendingProposal && i === messages.length - 1 && (
-                                    <div style={{ marginTop: 12, padding: 12, background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                                        <p style={{ margin: '0 0 10px 0', fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>
-                                            ⚡ This action will modify the database. Confirm to proceed:
+                                    <div style={{ marginTop: 16, padding: 16, background: 'rgba(255,255,255,0.6)', borderRadius: 12, border: '1px solid rgba(79, 70, 229, 0.1)', backdropFilter: 'blur(4px)' }}>
+                                        <p style={{ margin: '0 0 14px 0', fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <Sparkles size={16} style={{ color: 'var(--primary)' }} /> Confirmation Required
                                         </p>
-                                        <div style={{ display: 'flex', gap: 8 }}>
+                                        <div style={{ display: 'flex', gap: 10 }}>
                                             <button
                                                 onClick={confirmProposal}
-                                                style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#22c55e', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}
-                                            ><CheckCircle size={14} /> Confirm & Execute</button>
+                                                className="btn btn-primary"
+                                                style={{ padding: '8px 16px', fontSize: '0.8125rem', height: 'auto', background: 'var(--success)', borderColor: 'var(--success)' }}
+                                            ><CheckCircle size={14} style={{ marginRight: 6 }} /> Confirm & Execute</button>
                                             <button
                                                 onClick={rejectProposal}
-                                                style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}
-                                            ><XCircle size={14} /> Cancel</button>
+                                                className="btn btn-outline"
+                                                style={{ padding: '8px 16px', fontSize: '0.8125rem', height: 'auto', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                                            ><XCircle size={14} style={{ marginRight: 6 }} /> Cancel</button>
                                         </div>
                                     </div>
                                 )}
                             </div>
                             {msg.role === 'user' && (
-                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <User size={18} color="#64748b" />
+                                <div style={{ 
+                                    width: 40, height: 40, borderRadius: '12px', 
+                                    background: 'white', display: 'flex', alignItems: 'center', 
+                                    justifyContent: 'center', flexShrink: 0,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                    border: '1px solid var(--surface-border)'
+                                }}>
+                                    <User size={20} style={{ color: 'var(--text-muted)' }} />
                                 </div>
                             )}
                         </div>
                     ))}
 
                     {loading && (
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <Bot size={18} />
+                        <div style={{ display: 'flex', gap: 14 }}>
+                            <div style={{ 
+                                width: 40, height: 40, borderRadius: '12px', 
+                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', 
+                                color: '#fff', display: 'flex', alignItems: 'center', 
+                                justifyContent: 'center', flexShrink: 0
+                            }}>
+                                <Bot size={20} />
                             </div>
-                            <div style={{ padding: '14px 18px', background: '#f1f5f9', borderRadius: '18px 18px 18px 4px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}>
-                                <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Thinking…
+                            <div style={{ 
+                                padding: '16px 20px', 
+                                background: 'white', 
+                                borderRadius: '20px 20px 20px 4px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 10, 
+                                color: 'var(--text-muted)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                border: '1px solid var(--surface-border)'
+                            }}>
+                                <Loader size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }} /> 
+                                <span style={{ fontWeight: 500 }}>AI is thinking…</span>
                             </div>
                         </div>
                     )}
