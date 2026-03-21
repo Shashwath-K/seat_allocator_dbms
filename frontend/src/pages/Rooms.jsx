@@ -33,6 +33,27 @@ const Rooms = () => {
         fetchRooms();
     }, []);
 
+    const handleGenerateSeats = (room, e) => {
+        e.stopPropagation();
+        fetch('http://127.0.0.1:8000/generate-seats/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room_id: room.id })
+        })
+        .then(res => res.json())
+        .then(data => { alert(data.message || data.error); fetchRooms(); })
+        .catch(console.error);
+    };
+
+    const handleDeleteRoom = (room, e) => {
+        e.stopPropagation();
+        if (!window.confirm(`Delete room "${room.room_name}"? All its seat data will be removed.`)) return;
+        fetch(`http://127.0.0.1:8000/rooms/${room.id}/delete/`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => { if (!data.error) fetchRooms(); else alert(data.error); })
+        .catch(console.error);
+    };
+
     const handleCreate = (e) => {
         e.preventDefault();
 
@@ -231,9 +252,18 @@ const Rooms = () => {
                                             {r.room_type}
                                         </span>
                                     </div>
-                                    <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                        <MoreVertical size={18} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <button
+                                            onClick={e => handleGenerateSeats(r, e)}
+                                            title="Generate Seats"
+                                            style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '0.72rem', color: '#166534' }}
+                                        >⚙ Gen Seats</button>
+                                        <button
+                                            onClick={e => handleDeleteRoom(r, e)}
+                                            title="Delete Room"
+                                            style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '0.72rem', color: '#991b1b' }}
+                                        >✕ Delete</button>
+                                    </div>
                                 </div>
                                 <div style={{ flex: '1' }}>
                                     <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
