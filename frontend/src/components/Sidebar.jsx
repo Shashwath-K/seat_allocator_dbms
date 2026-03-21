@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UserPlus, Monitor, Calendar, DatabaseZap, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Monitor, Calendar, DatabaseZap, GraduationCap, Sparkles } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = () => {
@@ -45,6 +45,11 @@ const Sidebar = () => {
                 <NavLink to="/database" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <DatabaseZap size={20} />
                     <span>Database</span>
+                </NavLink>
+
+                <NavLink to="/ai" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+                    <Sparkles size={20} color="var(--primary-color)" />
+                    <span>AI Allocator</span>
                 </NavLink>
             </nav>
 
