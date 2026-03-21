@@ -2,9 +2,13 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from . import api_views
+from . import ai_views
 
 urlpatterns = [
     path("", api_views.home, name="home"),
+    path("ai-allocator/", ai_views.ai_allocator_page, name="ai_allocator"),
+    path("ai-allocator/chat/", ai_views.ai_allocator_chat, name="ai_allocator_chat"),
+    path("ai-allocator/confirm/", ai_views.ai_allocator_confirm, name="ai_allocator_confirm"),
     # Auth
     path("login/", auth_views.LoginView.as_view(template_name="allocation/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
