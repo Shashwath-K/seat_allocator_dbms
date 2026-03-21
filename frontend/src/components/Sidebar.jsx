@@ -1,65 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UserPlus, Monitor, Calendar, DatabaseZap, GraduationCap, Sparkles } from 'lucide-react';
+import { 
+    LayoutDashboard, Users, UserPlus, Monitor, Calendar, 
+    DatabaseZap, GraduationCap, Sparkles, ChevronLeft, ChevronRight 
+} from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = () => {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             <div className="sidebar-header">
-                <Monitor className="sidebar-logo" size={28} />
-                <h2>Seat Allocator</h2>
+                {!isCollapsed && (
+                    <div className="header-brand">
+                        <Monitor className="sidebar-logo" size={28} />
+                        <h2>Seat Allocator</h2>
+                    </div>
+                )}
+                {isCollapsed && <Monitor className="sidebar-logo compact" size={28} />}
+                <button 
+                    className="collapse-toggle" 
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                >
+                    {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                </button>
             </div>
 
             <nav className="sidebar-nav">
                 <NavLink to="/" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <LayoutDashboard size={20} />
-                    <span>Dashboard</span>
+                    {!isCollapsed && <span>Dashboard</span>}
                 </NavLink>
 
                 <NavLink to="/batches" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <Users size={20} />
-                    <span>Batches</span>
+                    {!isCollapsed && <span>Batches</span>}
                 </NavLink>
 
                 <NavLink to="/students" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <UserPlus size={20} />
-                    <span>Students</span>
+                    {!isCollapsed && <span>Students</span>}
                 </NavLink>
 
                 <NavLink to="/mentors" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <GraduationCap size={20} />
-                    <span>Mentors</span>
+                    {!isCollapsed && <span>Mentors</span>}
                 </NavLink>
 
                 <NavLink to="/rooms" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <Monitor size={20} />
-                    <span>Rooms</span>
+                    {!isCollapsed && <span>Rooms</span>}
                 </NavLink>
 
                 <NavLink to="/allotment" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <Calendar size={20} />
-                    <span>Allotment</span>
+                    {!isCollapsed && <span>Allotment</span>}
                 </NavLink>
 
                 <NavLink to="/database" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <DatabaseZap size={20} />
-                    <span>Database</span>
+                    {!isCollapsed && <span>Database</span>}
                 </NavLink>
 
                 <NavLink to="/ai" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <Sparkles size={20} />
-                    <span>AI Allocator</span>
+                    {!isCollapsed && <span>AI Allocator</span>}
                 </NavLink>
             </nav>
 
             <div className="sidebar-footer">
                 <div className="user-info">
                     <div className="user-avatar">AD</div>
-                    <div className="user-details">
-                        <span className="user-name">Admin</span>
-                        <span className="user-role">Administrator</span>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="user-details">
+                            <span className="user-name">Admin</span>
+                            <span className="user-role">Administrator</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </aside>
