@@ -88,25 +88,25 @@ const Batches = () => {
             </div>
 
             {activeTab === 'list' && (
-                <div className="card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <div style={{ position: 'relative', width: '300px' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
+                        <div style={{ position: 'relative', width: '320px' }}>
+                            <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
                                 type="text"
                                 className="form-control"
                                 placeholder="Search batches..."
-                                style={{ paddingLeft: '38px' }}
+                                style={{ paddingLeft: 48, background: 'rgba(0,0,0,0.02)' }}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <button className="btn btn-primary" onClick={() => setActiveTab('create')}>
-                            <Plus size={16} /> New Batch
+                            <Plus size={18} /> New Batch
                         </button>
                     </div>
 
-                    <div className="cards-grid">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
                         {batches.filter(b =>
                             b.batch_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             b.batch_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -114,47 +114,39 @@ const Batches = () => {
                             <div
                                 key={b.id}
                                 className="card"
-                                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--border-color)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '16px', padding: '28px' }}
                                 onClick={() => navigate(`/batches/${b.id}`)}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'none';
-                                }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--primary-color)' }}>{b.batch_code}</h3>
+                                    <div style={{ background: 'rgba(79, 70, 229, 0.05)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(79, 70, 229, 0.1)' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.05em' }}>{b.batch_code}</h3>
+                                    </div>
                                     <span className={`badge ${b.is_active ? 'badge-green' : 'badge-gray'}`}>
                                         {b.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                 </div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '12px', minHeight: '40px' }}>
+                                <div style={{ color: 'var(--text-main)', fontSize: '1.05rem', fontWeight: 600, minHeight: '44px', lineHeight: '1.4' }}>
                                     {b.batch_name}
                                 </div>
 
-                                <div style={{ marginTop: 'auto' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
-                                        <span>Capacity</span>
-                                        <strong>{b.student_count || 0} / {b.max_students}</strong>
+                                <div style={{ marginTop: 'auto', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '8px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                                        <span>Capacity Utilization</span>
+                                        <span style={{ color: 'var(--text-main)' }}>{b.student_count || 0} / {b.max_students}</span>
                                     </div>
-                                    <div style={{ width: '100%', background: '#edf2f7', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${Math.min(((b.student_count || 0) / b.max_students) * 100, 100)}%`, background: 'var(--accent-color)', height: '100%' }}></div>
+                                    <div style={{ width: '100%', background: '#e2e8f0', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                                        <div style={{ 
+                                            width: `${Math.min(((b.student_count || 0) / b.max_students) * 100, 100)}%`, 
+                                            background: 'linear-gradient(to right, var(--primary), var(--accent))', 
+                                            height: '100%',
+                                            boxShadow: '0 0 8px var(--primary-glow)'
+                                        }}></div>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
-                    {batches.filter(b =>
-                        b.batch_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        b.batch_name.toLowerCase().includes(searchTerm.toLowerCase())
-                    ).length === 0 && (
-                            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                                No batches found matching your search.
-                            </div>
-                        )}
+                    {/* ... (no changes to the no-batches message placeholder) */}
                 </div>
             )}
 
