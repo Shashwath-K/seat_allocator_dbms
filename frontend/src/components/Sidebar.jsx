@@ -48,7 +48,7 @@ const Sidebar = () => {
                 </NavLink>
 
                 <NavLink to="/ai" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-                    <Sparkles size={20} color="var(--primary-color)" />
+                    <Sparkles size={20} />
                     <span>AI Allocator</span>
                 </NavLink>
             </nav>
