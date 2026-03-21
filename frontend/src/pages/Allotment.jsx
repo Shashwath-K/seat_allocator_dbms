@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarPlus, Calendar, ArrowRight, Search, MoreVertical } from 'lucide-react';
+import { CalendarPlus, Calendar, Search, Trash2, RotateCcw, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Allotment = () => {
@@ -88,11 +88,27 @@ const Allotment = () => {
         setFormData({ ...formData, days: d });
     };
 
+    const handleResetAllocations = () => {
+        if (!window.confirm('⚠️ This will DELETE all allocations and sessions. This action cannot be undone. Proceed?')) return;
+        fetch('http://127.0.0.1:8000/reset-allocation/', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => { alert(data.message || data.error); fetchAllocations(); })
+            .catch(console.error);
+    };
+
     return (
         <div className="fade-in">
-            <header className="page-header">
-                <h1 className="page-title">Classroom Allotment</h1>
-                <p className="page-subtitle">Schedule batches to designated rooms and map visual layouts.</p>
+            <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 className="page-title">Classroom Allotment</h1>
+                    <p className="page-subtitle">Schedule batches to designated rooms and map visual layouts.</p>
+                </div>
+                <button
+                    onClick={handleResetAllocations}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, cursor: 'pointer', color: '#991b1b', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', marginTop: 4 }}
+                >
+                    <RotateCcw size={15} /> Reset All Allocations
+                </button>
             </header>
 
             <div className="tabs">
