@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, UserCheck, MonitorPlay, CalendarPlus, GraduationCap } from 'lucide-react';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const [data, setData] = useState({
         total_batches: 0,
         active_batches: 0,
@@ -80,9 +82,9 @@ const Dashboard = () => {
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Quick System Actions</h2>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                    <button className="btn btn-primary" style={{ minWidth: '160px' }}><Users size={18} /> Create Batch</button>
-                    <button className="btn btn-outline" style={{ minWidth: '160px' }}><MonitorPlay size={18} /> Add Room</button>
-                    <button className="btn btn-success" style={{ minWidth: '160px' }}><CalendarPlus size={18} /> New Allotment</button>
+                    <button onClick={() => navigate('/batches')} className="btn btn-primary" style={{ minWidth: '160px' }}><Users size={18} /> Create Batch</button>
+                    <button onClick={() => navigate('/rooms')} className="btn btn-outline" style={{ minWidth: '160px' }}><MonitorPlay size={18} /> Add Room</button>
+                    <button onClick={() => navigate('/allotment')} className="btn btn-success" style={{ minWidth: '160px' }}><CalendarPlus size={18} /> New Allotment</button>
                 </div>
             </div>
         </div>
