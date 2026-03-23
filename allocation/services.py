@@ -2,7 +2,7 @@ import random
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, F
 
 from .models import Allocation, Batch, Mentor, Room, Seat, Session, Student
 
@@ -201,9 +201,33 @@ def allocate_batch_to_room(
     if student_count > room.capacity:
         raise ValidationError({"room": f"Room '{room.room_name}' capacity ({room.capacity}) is lower than the batch size ({student_count})."})
 
-    seats = list(Seat.objects.filter(room=room).order_by("seat_number"))
-    if len(seats) != room.capacity:
-        raise ValidationError({"room": f"Seat count mismatch for '{room.room_name}'. Generated seats ({len(seats)}) must match room capacity ({room.capacity})."})
+    # Total seats in room
+    all_seats = Seat.objects.filter(room=room).order_by("seat_number")
+    if all_seats.count() != room.capacity:
+        raise ValidationError({"room": f"Seat count mismatch for '{room.room_name}'. Generated seats must match room capacity."})
+
+    # Available seats for this specific date/slot (Rule: multiple batches can share a room)
+    if use_slot:
+        taken_seats = Allocation.objects.filter(
+            room=room, date=date, time_slot=normalized_time_slot
+        ).values_list("seat_number", flat=True)
+        seats = list(all_seats.exclude(seat_number__in=taken_seats))
+        available_capacity = len(seats)
+    else:
+        # For range allocations, we use simpler overlapping check later, 
+        # but for now assume we need all seats or check overlapping ones.
+        # However, range allocations usually take the WHOLE room.
+        # To be safe, let's keep it consistent.
+        overlapping_seats = Allocation.objects.filter(
+            room=room, 
+            start_date__lte=end_date, 
+            end_date__gte=start_date
+        ).values_list("seat_number", flat=True)
+        seats = list(all_seats.exclude(seat_number__in=overlapping_seats))
+        available_capacity = len(seats)
+
+    if available_capacity < student_count:
+        raise ValidationError({"room": f"Room '{room.room_name}' has only {available_capacity} available seats, but batch needs {student_count}."})
 
     if use_slot:
         if not date or not normalized_time_slot:
@@ -213,10 +237,9 @@ def allocate_batch_to_room(
 
         if Session.objects.filter(batch=batch, date=date, time_slot=normalized_time_slot).exists():
             raise ValidationError({"batch": f"Batch '{batch.batch_code}' already has a session on {date} [{normalized_time_slot}]."})
-        if Session.objects.filter(room=room, date=date, time_slot=normalized_time_slot).exists():
-            raise ValidationError({"room": f"Room '{room.room_name}' is already booked on {date} [{normalized_time_slot}]."})
-        if Session.objects.filter(mentor=mentor, date=date, time_slot=normalized_time_slot).exists():
-            raise ValidationError({"mentor": f"Mentor '{mentor.mentor_code}' is already booked on {date} [{normalized_time_slot}]."})
+        # REMOVED: Room check to allow multiple batches
+        if Session.objects.filter(mentor=mentor, date=date, time_slot=normalized_time_slot).exclude(room=room).exists():
+            raise ValidationError({"mentor": f"Mentor '{mentor.mentor_code}' is already booked in ANOTHER room on {date} [{normalized_time_slot}]."})
         if Allocation.objects.filter(student__in=students, date=date, time_slot=normalized_time_slot).exists():
             raise ValidationError({"student": "One or more students are already assigned in this time slot."})
         start_date = None
@@ -243,8 +266,9 @@ def allocate_batch_to_room(
     session.save()
 
     seats, students = _apply_strategy(seats, students, strategy)
+    # seats now only contains available seats
     if len(seats) < student_count:
-        raise ValidationError({"room": "Not enough generated seats are available for this batch."})
+        raise ValidationError({"room": "Not enough available seats for this batch strategy."})
 
     allocations = [
         Allocation(
@@ -332,6 +356,16 @@ def reallocate_room_allocations(room, strategy, date=None, time_slot=None):
     if len(seats) < len(allocations):
         raise ValidationError({"strategy": "Selected strategy does not leave enough seats for all allocations."})
 
+    # Phase 1: Temporarily shift all TARGET allocations to a high range to avoid unique constraint collisions.
+    # We use .all() on the queryset to ensure we update exactly the rows we fetched.
+    # We use a large offset (room capacity + 10000) to ensure no overlap.
+    temp_offset = room.capacity + 10000
+    allocation_ids = [a.id for a in allocations]
+    Allocation.objects.filter(id__in=allocation_ids).update(seat_number=F("seat_number") + temp_offset)
+
+    # Phase 2: Assign final seats.
+    # We update one-by-one to ensure we can use full_clean() if needed,
+    # though here we are mainly interested in the final seat_number.
     for index, allocation in enumerate(allocations):
         allocation.seat_number = seats[index].seat_number
         allocation.full_clean()
