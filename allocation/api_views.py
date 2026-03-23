@@ -2,6 +2,7 @@ import json
 
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.db import transaction
 from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_exempt
 
@@ -183,35 +184,52 @@ def allocate_manual(request):
     if request.method == "POST":
         try:
             data = _parse_json_body(request)
-            batch = Batch.objects.filter(id=data.get("batch_id")).first()
+            batch_ids = data.get("batch_ids", [])
+            # Fallback for single batch_id
+            if not batch_ids and data.get("batch_id"):
+                batch_ids = [data.get("batch_id")]
+
             room = Room.objects.filter(id=data.get("room_id")).first()
             mentor = Mentor.objects.filter(id=data.get("mentor_id")).first() if data.get("mentor_id") else None
 
-            if not batch or not room:
-                return JsonResponse({"error": "Invalid batch or room"}, status=400)
+            if not batch_ids or not room:
+                return JsonResponse({"error": "Invalid batch(es) or room"}, status=400)
             if data.get("mentor_id") and mentor is None:
                 return JsonResponse({"error": f"Mentor with id={data.get('mentor_id')} not found."}, status=400)
 
-            _, allocations = allocate_batch_to_room(
-                batch=batch,
-                room=room,
-                mentor=mentor,
-                start_date=data.get("start_date") or None,
-                end_date=data.get("end_date") or None,
-                date=data.get("date") or None,
-                time_slot=data.get("time_slot", ""),
-                days=data.get("days", []),
-                strategy=data.get("strategy", "sequential"),
-            )
+            total_allocated = 0
+            batch_codes = []
+            
+            with transaction.atomic():
+                for b_id in batch_ids:
+                    batch = Batch.objects.filter(id=b_id).first()
+                    if not batch:
+                        continue
+                    
+                    _, allocations = allocate_batch_to_room(
+                        batch=batch,
+                        room=room,
+                        mentor=mentor,
+                        start_date=data.get("start_date") or None,
+                        end_date=data.get("end_date") or None,
+                        date=data.get("date") or None,
+                        time_slot=data.get("time_slot", ""),
+                        days=data.get("days", []),
+                        strategy=data.get("strategy", "sequential"),
+                    )
+                    total_allocated += len(allocations)
+                    batch_codes.append(batch.batch_code)
 
             date = data.get("date") or None
             time_slot = (data.get("time_slot") or "").strip()
             slot_str = f" on {date} [{time_slot}]" if date else f" from {data.get('start_date')} to {data.get('end_date')}"
             mentor_str = f" (Mentor: {mentor.mentor_code})" if mentor else ""
+            batches_str = ", ".join(batch_codes)
+
             return JsonResponse(
                 {
                     "message": (
-                        f"Allocated Batch '{batch.batch_code}' ({len(allocations)} students) "
+                        f"Allocated Batches '{batches_str}' ({total_allocated} total students) "
                         f"to '{room.room_name}'{slot_str} using '{data.get('strategy', 'sequential')}' strategy{mentor_str}."
                     )
                 }
