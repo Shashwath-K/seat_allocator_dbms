@@ -443,16 +443,6 @@ class Session(models.Model):
                 condition=models.Q(batch__isnull=False, date__isnull=False) & ~models.Q(time_slot=""),
                 name="unique_session_batch_date_timeslot",
             ),
-            models.UniqueConstraint(
-                fields=["room", "date", "time_slot"],
-                condition=models.Q(date__isnull=False) & ~models.Q(time_slot=""),
-                name="unique_session_room_date_timeslot",
-            ),
-            models.UniqueConstraint(
-                fields=["mentor", "date", "time_slot"],
-                condition=models.Q(mentor__isnull=False, date__isnull=False) & ~models.Q(time_slot=""),
-                name="unique_session_mentor_date_timeslot",
-            ),
         ]
 
 
