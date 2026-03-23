@@ -94,7 +94,7 @@ const AIAllocator = () => {
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 110px)' }}>
             <header className="page-header" style={{ marginBottom: 16 }}>
                 <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Sparkles size={28} color="var(--primary-color)" /> AI Allocator
+                    <Sparkles size={28} color="var(--primary)" /> AI Allocator
                 </h1>
                 <p className="page-subtitle">Converse naturally to query or modify the allocation schedule. Write actions require manual confirmation.</p>
             </header>
