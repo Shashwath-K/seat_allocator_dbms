@@ -223,7 +223,7 @@ const Allotment = () => {
 
             {activeTab === 'create' && (
                 <div className="card" style={{ maxWidth: '600px' }}>
-                    <h2 style={{ fontSize: '1.1rem', marginBottom: '24px', color: 'var(--primary-color)' }}>Manual Classroom Setup</h2>
+                    <h2 style={{ fontSize: '1.1rem', marginBottom: '24px', color: 'var(--primary)' }}>Manual Classroom Setup</h2>
                     <form onSubmit={handleCreate}>
                         <div style={{ display: 'flex', gap: '16px' }}>
                             <div className="form-group" style={{ flex: 1 }}>
@@ -264,7 +264,7 @@ const Allotment = () => {
                                         onClick={() => toggleDay(day)}
                                         style={{
                                             padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border-color)',
-                                            background: formData.days.includes(day) ? 'var(--primary-color)' : '#fff',
+                                            background: formData.days.includes(day) ? 'var(--primary)' : '#fff',
                                             color: formData.days.includes(day) ? '#fff' : 'var(--text-color)',
                                             cursor: 'pointer', transition: '0.2s', fontSize: '0.85rem'
                                         }}>
