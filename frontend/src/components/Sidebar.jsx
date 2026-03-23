@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-    LayoutDashboard, Users, UserPlus, Monitor, Calendar, 
-    DatabaseZap, GraduationCap, Sparkles, ChevronLeft, ChevronRight 
+import {
+    LayoutDashboard, Users, UserPlus, Monitor, Calendar,
+    DatabaseZap, GraduationCap, Sparkles, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -19,8 +19,8 @@ const Sidebar = () => {
                     </div>
                 )}
                 {isCollapsed && <Monitor className="sidebar-logo compact" size={28} />}
-                <button 
-                    className="collapse-toggle" 
+                <button
+                    className="collapse-toggle"
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                 >
@@ -66,7 +66,7 @@ const Sidebar = () => {
 
                 <NavLink to="/ai" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <Sparkles size={20} />
-                    {!isCollapsed && <span>AI Allocator</span>}
+                    {!isCollapsed && <span>AI (Preview)</span>}
                 </NavLink>
             </nav>
 
