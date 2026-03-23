@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+from django.db import connection
 from .ai_data import build_ai_context
 from .models import Batch, Room, Session, Mentor
 from .ollama_client import OLLAMA_MODEL, ollama_chat
@@ -25,6 +26,32 @@ WRITE_KEYWORDS = {
     "insert",
     "create",
 }
+
+DATABASE_SCHEMA_PROMPT = """
+You are a SQL expert for a Room Allotment System. 
+Generate a single SQLite SELECT query to answer the user's question.
+
+Schema:
+- batch: id, batch_code, batch_name, academic_year, department, max_students
+- student: id, name, usn, batch_id (FK to batch.id)
+- room: id, room_name, room_type (regular, lab, conference), capacity
+- mentor: id, name, mentor_code, department
+- session: id, batch_id (FK), room_id (FK), mentor_id (FK), date (YYYY-MM-DD), time_slot (FN, AN)
+- allocation: id, student_id (FK), batch_id (FK), room_id (FK), session_id (FK), mentor_id (FK), seat_number, date, time_slot
+
+Common Joins:
+- session.mentor_id = mentor.id
+- session.batch_id = batch.id
+- student.batch_id = batch.id
+- allocation.student_id = student.id
+
+Rules:
+1. Return ONLY the SQL string. No explanation.
+2. Only use SELECT. No INSERT/UPDATE/DELETE.
+3. Use LIKE for name searches (e.g., name LIKE '%Prof%').
+4. For "tomorrow", use DATE('now', '+1 day'). For "today", use DATE('now').
+5. Limit results to 50 rows.
+"""
 
 
 def ai_allocator_page(request):
@@ -65,23 +92,8 @@ def _is_write_intent(message):
     return any(keyword in lowered for keyword in WRITE_KEYWORDS)
 
 
-def _build_context_json(message):
-    snapshot = build_ai_context()
-    lowered = message.lower()
-    payload = {
-        "today": str(timezone.localdate()),
-        "rooms": snapshot["rooms"],
-        "batches": snapshot["batches"],
-        "mentors": snapshot["mentors"],
-        "sessions": snapshot["sessions"],
-    }
-
-    if any(token in lowered for token in ["allocation", "allocated", "seat", "empty", "free", "occupied"]):
-        payload["allocations"] = snapshot["allocations"]
-    if any(token in lowered for token in ["student", "usn", "batch"]):
-        payload["students"] = snapshot["students"]
-
-    return json.dumps(payload, default=str)
+def _build_schema_context():
+    return DATABASE_SCHEMA_PROMPT
 
 
 def _deterministic_read_response(message):
@@ -157,52 +169,80 @@ def _deterministic_read_response(message):
     return None
 
 
+def _generate_sql(message):
+    prompt = [
+        {"role": "system", "content": DATABASE_SCHEMA_PROMPT},
+        {"role": "user", "content": f"Question: {message}\nSQL:"}
+    ]
+    sql = ollama_chat(prompt, temperature=0.1).strip()
+    # Basic sanitization
+    sql = sql.replace("```sql", "").replace("```", "").strip()
+    if not sql.lower().startswith("select"):
+        return None
+    return sql
+
+def _execute_sql_readonly(sql):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+            return {"columns": columns, "data": rows[:50]}
+    except Exception as e:
+        return {"error": str(e)}
+
+def _answer_from_results(message, sql, results):
+    if "error" in results:
+        return f"I encountered an issue while querying the database: {results['error']}"
+    
+    data_str = json.dumps(results["data"], default=str)
+    prompt = [
+        {
+            "role": "system", 
+            "content": "You are a conversational assistant. Answer the user's question using the provided SQL results. Be friendly, concise, and accurate."
+        },
+        {
+            "role": "user", 
+            "content": f"Question: {message}\nSQL Used: {sql}\nResults: {data_str}\n\nResponse:"
+        }
+    ]
+    return ollama_chat(prompt, temperature=0.4)
+
 def _read_response(message):
+    # 1. Try deterministic first
     deterministic = _deterministic_read_response(message)
     if deterministic:
         return {"reply": deterministic, "requires_confirmation": False, "proposal": None}
 
-    context_json = _build_context_json(message)
-    answer = ollama_chat(
-        [
-            {
-                "role": "system",
-                "content": (
-                    "You are a careful allocation assistant. Answer only from the supplied database snapshot. "
-                    "If the answer is not in the data, say that clearly. Keep answers concise and factual. "
-                    "Use exact values from the snapshot and keep counts consistent with the listed items."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Database snapshot:\n{context_json}\n\nQuestion:\n{message}",
-            },
-        ]
-    )
-    return {"reply": answer, "requires_confirmation": False, "proposal": None}
+    # 2. Try NL-to-SQL
+    sql = _generate_sql(message)
+    if sql:
+        results = _execute_sql_readonly(sql)
+        if "data" in results and results["data"]:
+            answer = _answer_from_results(message, sql, results)
+            return {"reply": answer, "requires_confirmation": False, "proposal": None, "sql": sql}
+        else:
+            # No results found via SQL or error
+            return {"reply": "I couldn't find any information matching that request, or the query failed due to system resource limits.", "requires_confirmation": False}
+
+    # 3. Final Fallback
+    return {"reply": "I'm having trouble connecting to the intelligence engine. Please try again later.", "requires_confirmation": False}
 
 
 def _write_proposal(message):
-    context_json = _build_context_json(message)
-    content = ollama_chat(
-        [
-            {
-                "role": "system",
-                "content": (
-                    "You convert user requests into safe allocation actions. "
-                    "Return JSON only with keys: action, requires_confirmation, summary, parameters. "
-                    "Supported actions: allocate_batch, reallocate_room, delete_session, none. "
-                    "Use IDs from the snapshot when possible. "
-                    "If details are missing, set action to none and explain what is missing in summary."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Database snapshot:\n{context_json}\n\nUser request:\n{message}",
-            },
-        ],
-        response_format="json",
-    )
+    prompt = [
+        {
+            "role": "system",
+            "content": (
+                "You convert user requests into safe allocation actions. "
+                "Supported actions: allocate_batch, reallocate_room, delete_session, none. "
+                "Return JSON ONLY with keys: action, summary, parameters."
+                "\n\n" + DATABASE_SCHEMA_PROMPT
+            ),
+        },
+        {"role": "user", "content": message},
+    ]
+    content = ollama_chat(prompt, response_format="json")
     proposal = _normalize_llm_json(content)
     action = proposal.get("action") or "none"
     if action == "none":
