@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Allocator</title>
+    <title>AI Preview</title>
     <style>
         :root {
             --bg: #f4efe7;
@@ -16,7 +17,10 @@
             --danger: #991b1b;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: Georgia, "Times New Roman", serif;
@@ -136,7 +140,9 @@
             color: #fff;
         }
 
-        .primary:hover { background: var(--accent-dark); }
+        .primary:hover {
+            background: var(--accent-dark);
+        }
 
         .secondary {
             background: #fff;
@@ -183,19 +189,23 @@
         }
     </style>
 </head>
+
 <body>
     <div class="shell">
         <div class="header">
             <h1 class="title">AI Allocator</h1>
-            <p class="subtitle">Chat with the live database. Read-only answers are immediate. Any insert, update, delete, or reallocation must be confirmed before execution. Model: {{ ollama_model }}</p>
+            <p class="subtitle">Chat with the live database. Read-only answers are immediate. Any insert, update,
+                delete, or reallocation must be confirmed before execution. Model: {{ ollama_model }}</p>
         </div>
         <div class="content">
             <section class="chat-panel">
                 <div id="messages" class="messages">
-                    <div class="bubble ai">Ask about available rooms, mentors, sessions, labs, capacities, or allocations.</div>
+                    <div class="bubble ai">Ask about available rooms, mentors, sessions, labs, capacities, or
+                        allocations.</div>
                 </div>
                 <div class="composer">
-                    <textarea id="messageInput" placeholder="Example: Which room is empty today?&#10;Example: Assign batch BT-Beta to LAB-01 on 2026-03-21 FN with mentor EMP-001"></textarea>
+                    <textarea id="messageInput"
+                        placeholder="Example: Which room is empty today?&#10;Example: Assign batch BT-Beta to LAB-01 on 2026-03-21 FN with mentor EMP-001"></textarea>
                     <div class="actions">
                         <button id="sendBtn" class="primary" type="button">Send</button>
                         <button id="clearBtn" class="secondary" type="button">Clear Chat</button>
@@ -325,4 +335,5 @@
         });
     </script>
 </body>
+
 </html>
