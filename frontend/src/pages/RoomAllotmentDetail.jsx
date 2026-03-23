@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarPlus, Calendar, User } from 'lucide-react';
+import { Calendar, CalendarPlus, Layout, User, Settings, ArrowLeft, RefreshCw, Layers, Grid, List, Table, Filter, X, ChevronRight, UserPlus, FileText } from 'lucide-react';
+import PrintableRoomReport from '../components/PrintableRoomReport';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -34,6 +35,7 @@ const buildOccupiedForDate = (allAllocations, roomId, filterDate) => {
 ───────────────────────────────────────────────────────────────────────────── */
 const SeatTile = ({ seatNum, occ, extraStyle = {}, onDragStart, onDrop }) => (
     <div
+        className="seat-tile"
         title={occ ? `Seat ${seatNum}: ${occ.usn} — ${occ.name}` : `Seat ${seatNum} — Empty`}
         draggable={!!occ}
         onDragStart={onDragStart}
@@ -43,7 +45,7 @@ const SeatTile = ({ seatNum, occ, extraStyle = {}, onDragStart, onDrop }) => (
             width: 44, height: 44, borderRadius: 6,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '0.82rem', fontWeight: 600,
-            background: occ ? 'var(--primary-color)' : '#fff',
+            background: occ ? 'var(--primary)' : '#fff',
             color: occ ? '#fff' : '#64748b',
             cursor: occ ? 'grab' : 'default',
             transition: 'transform 0.18s, box-shadow 0.18s',
@@ -74,6 +76,7 @@ const RoomAllotmentDetail = () => {
 
     /* ── Calendar filter ── */
     const [filterDate, setFilterDate] = useState('');     // '' = show all-time map
+    const [filterTimeSlot, setFilterTimeSlot] = useState('ALL');
 
     /* ── Drag-and-drop local overrides ── */
     const [localOccupied, setLocalOccupied] = useState(null);
@@ -81,10 +84,10 @@ const RoomAllotmentDetail = () => {
     /* ── Assign-batch form ── */
     const [batches, setBatches] = useState([]);
     const [formData, setFormData] = useState({
-        batch_id: '', room_id: roomId,
-        mentor_id: '',                          // ← New: mentor link
+        batch_ids: [], room_id: roomId,
+        mentor_id: '',
         start_date: '', end_date: '',
-        date: '', time_slot: '',
+        date: '', time_slot: 'FN',
         days: [], strategy: 'sequential',
     });
 
@@ -122,20 +125,37 @@ const RoomAllotmentDetail = () => {
             const roomName = roomDetails?.name;
             const filtered = {};
             allAllocations
-                .filter(a => a.room_name === roomName && a.date === filterDate)
+                .filter(a => {
+                    const matchDate = a.room_name === roomName && a.date === filterDate;
+                    const matchSlot = filterTimeSlot === 'ALL' || a.time_slot === filterTimeSlot;
+                    return matchDate && matchSlot;
+                })
                 .forEach(a => {
                     filtered[a.seat_number] = {
                         name: a.student_name,
                         usn: a.student_usn,
                         alloc_id: a.id,
-                        mentor_code: a.mentor_code,     // ← New: mentor display
+                        mentor_code: a.mentor_code,
+                        batch_code: a.batch_code,       // ← New: batch display
+                        time_slot: a.time_slot,         // ← New: slot display
                     };
                 });
             return filtered;
         }
 
         return roomDetails?.occupied ?? {};
-    }, [localOccupied, filterDate, allAllocations, roomDetails]);
+    }, [localOccupied, filterDate, allAllocations, roomDetails, filterTimeSlot]);
+
+    /* ── Derived active mentors for session ────── */
+    const activeSessionMentors = useMemo(() => {
+        if (!filterDate) return [];
+        const mentorCodes = new Set();
+        Object.values(effectiveOccupied).forEach(occ => {
+            if (occ?.mentor_code) mentorCodes.add(occ.mentor_code);
+        });
+        
+        return mentors.filter(m => mentorCodes.has(m.mentor_code));
+    }, [effectiveOccupied, mentors, filterDate]);
 
     /* ── Seat table rows (sorted by seat number) ────────────────────────── */
     const seatRows = useMemo(() => {
@@ -147,9 +167,11 @@ const RoomAllotmentDetail = () => {
                 seatNum: sn, 
                 name: occ?.name ?? null, 
                 usn: occ?.usn ?? null,
-                mentor: occ?.mentor_code ?? null        // ← New: mentor link
+                mentor: occ?.mentor_code ?? null,
+                batch: occ?.batch_code ?? null,
+                slot: occ?.time_slot ?? null,
             };
-        });
+        }).filter(row => !!row.name);
     }, [effectiveOccupied, roomDetails]);
 
     /* ── Drag & drop handlers ───────────────────────────────────────────── */
@@ -195,7 +217,11 @@ const RoomAllotmentDetail = () => {
         fetch(`http://127.0.0.1:8000/reallocate_room/${roomId}/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ strategy }),
+            body: JSON.stringify({ 
+                strategy,
+                date: filterDate || null,
+                time_slot: (filterTimeSlot !== 'ALL') ? filterTimeSlot : null,
+            }),
         }).then(r => r.json()).then(d => {
             if (!d.error) fetchData(); else alert(d.error);
         }).finally(() => setIsReallocating(false));
@@ -204,6 +230,10 @@ const RoomAllotmentDetail = () => {
     /* ── Assign-batch form ── */
     const handleCreate = e => {
         e.preventDefault();
+        if (formData.batch_ids.length === 0) {
+            alert('Please select at least one batch.');
+            return;
+        }
         fetch('http://127.0.0.1:8000/allocate/manual/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -212,7 +242,13 @@ const RoomAllotmentDetail = () => {
             if (!d.error) {
                 fetchData();
                 setActiveTab('map');
-                setFormData({ ...formData, batch_id: '', mentor_id: '', start_date: '', end_date: '', date: '', time_slot: '', days: [], strategy: 'sequential' });
+                setFormData({
+                    ...formData,
+                    batch_ids: [], mentor_id: '',
+                    start_date: '', end_date: '',
+                    date: '', time_slot: 'FN',
+                    days: [], strategy: 'sequential'
+                });
             } else alert(d.error);
         });
     };
@@ -249,13 +285,13 @@ const RoomAllotmentDetail = () => {
 
     /* ── Render ── */
     return (
+    <>
         <div className="fade-in">
-
             {/* ── Header ── */}
-            <header className="page-header" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+            <header className="page-header no-print" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
                 <button
                     onClick={() => navigate('/allotment')}
-                    className="btn btn-outline"
+                    className="btn btn-outline back-btn"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', whiteSpace: 'nowrap' }}
                 >
                     <ArrowLeft size={16} /> Back to Rooms
@@ -290,44 +326,119 @@ const RoomAllotmentDetail = () => {
                 MAP TAB — split panel
             ════════════════════════════════════════════════════════════ */}
             {activeTab === 'map' && (
-                <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-                    {/* ── LEFT: Calendar filter + layout grid ── */}
-                    <div style={{ flex: '1 1 55%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* ── TOP: Calendar & Session filters ── */}
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                        {/* Calendar filter card */}
-                        <div className="card" style={{ padding: '16px 20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <Calendar size={18} color="var(--primary-color)" />
-                                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Filter by Date</span>
+                        {/* Filter card (Date + Session) */}
+                        <div className="card calendar-filter-card no-print" style={{ padding: '16px 24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <Calendar size={19} color="var(--primary)" />
+                                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-color)' }}>View Schedule</span>
                                 </div>
-                                <input
-                                    type="date"
-                                    className="form-control"
-                                    value={filterDate}
-                                    onChange={e => { setFilterDate(e.target.value); setLocalOccupied(null); }}
-                                    style={{ width: 180, padding: '6px 10px' }}
-                                />
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>Date:</label>
+                                    <input
+                                        type="date"
+                                        className="form-control"
+                                        value={filterDate}
+                                        onChange={e => { setFilterDate(e.target.value); setLocalOccupied(null); }}
+                                        style={{ width: 170, padding: '7px 12px', border: '1px solid #cbd5e1', borderRadius: 8 }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>Session:</label>
+                                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        {['ALL', 'FN', 'AN'].map(slot => (
+                                            <button
+                                                key={slot}
+                                                onClick={() => setFilterTimeSlot(slot)}
+                                                style={{
+                                                    padding: '6px 16px', borderRadius: '7px', border: 'none',
+                                                    background: filterTimeSlot === slot ? 'white' : 'transparent',
+                                                    color: filterTimeSlot === slot ? 'var(--primary)' : '#64748b',
+                                                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', fontSize: '0.8rem',
+                                                    boxShadow: filterTimeSlot === slot ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                                                    minWidth: 54
+                                                }}
+                                            >
+                                                {slot}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {filterDate && (
-                                    <button
-                                        className="btn btn-outline"
-                                        style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-                                        onClick={() => { setFilterDate(''); setLocalOccupied(null); }}
-                                    >
-                                        Clear
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn btn-outline"
+                                            style={{ padding: '7px 16px', fontSize: '0.82rem', borderRadius: 8 }}
+                                            onClick={() => { setFilterDate(''); setFilterTimeSlot('ALL'); setLocalOccupied(null); }}
+                                        >
+                                            Clear All Filters
+                                        </button>
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{ padding: '7px 16px', fontSize: '0.82rem', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}
+                                            onClick={() => window.print()}
+                                        >
+                                            <FileText size={14} /> Generate PDF Report
+                                        </button>
+                                    </>
                                 )}
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
-                                    {filterDate
-                                        ? `Showing allocations for ${filterDate}`
-                                        : 'Showing all-time current map'}
-                                </span>
+                                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>
+                                        {Object.values(effectiveOccupied).filter(Boolean).length} Students
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                        {filterDate ? `${filterDate} ${filterTimeSlot !== 'ALL' ? `[${filterTimeSlot}]` : ''}` : 'All-time map'}
+                                    </div>
+                                </div>
+                                </div>
                             </div>
-                        </div>
+                        
+                        {/* Mentor Details Card (New) */}
+                        {filterDate && activeSessionMentors.length > 0 && (
+                            <div className="card fade-in" style={{ padding: '16px 24px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                                            <User size={20} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Session Mentor(s)</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-color)' }}>
+                                                {activeSessionMentors.map(m => m.name).join(', ')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ height: 30, width: 1, background: '#cbd5e1', margin: '0 10px' }} />
+
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        {activeSessionMentors.map(m => (
+                                            <span key={m.id} className="badge" style={{ background: '#fff', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 700, padding: '4px 12px' }}>
+                                                {m.mentor_code}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Date & Slot</div>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{filterDate} | {filterTimeSlot}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Layout map card */}
-                        <div className="card" style={{ padding: 20 }}>
+                        <div className="card seat-matrix-card" style={{ padding: 20 }}>
                             {/* Toolbar */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
                                 <h2 style={{ fontSize: '1rem', margin: 0, color: 'var(--primary-color)', fontWeight: 700 }}>
@@ -347,12 +458,11 @@ const RoomAllotmentDetail = () => {
                                 </div>
                             </div>
 
-                            {/* Grid canvas */}
-                            <div style={{
+                            <div className="seat-grid-canvas" style={{
                                 display: 'flex', flexWrap: 'wrap', gap: 14, padding: '28px 20px',
                                 background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0',
                                 minHeight: 260, alignContent: 'flex-start', justifyContent: 'center',
-                                overflowX: 'auto',
+                                overflow: 'visible',
                             }}>
 
                                 {/* Flat / Lab layout */}
@@ -410,80 +520,109 @@ const RoomAllotmentDetail = () => {
                                 })()}
                             </div>
 
-                            {/* Legend */}
-                            <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                    <span style={{ width: 14, height: 14, borderRadius: 3, background: 'var(--primary-color)', display: 'inline-block' }} /> Occupied
-                                </span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                    <span style={{ width: 14, height: 14, borderRadius: 3, background: '#fff', border: '2px solid #cbd5e1', display: 'inline-block' }} /> Empty
-                                </span>
-                                <span style={{ marginLeft: 'auto' }}>
-                                    {Object.values(effectiveOccupied).filter(Boolean).length} / {roomDetails.capacity} occupied
-                                </span>
-                            </div>
-                        </div>
+                             {/* Legend */}
+                             <div className="legend-card no-print" style={{ display: 'flex', gap: 24, marginTop: 18, padding: '12px 20px', background: '#f8fafc', borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-muted)', border: '1px solid #f1f5f9' }}>
+                                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                     <span style={{ width: 14, height: 14, borderRadius: 3, background: 'var(--primary)', display: 'inline-block' }} /> Occupied
+                                 </span>
+                                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                     <span style={{ width: 14, height: 14, borderRadius: 3, background: '#fff', border: '2px solid #cbd5e1', display: 'inline-block' }} /> Empty
+                                 </span>
+                                 <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
+                                    <span>Total: <strong>{roomDetails.capacity}</strong> seats</span>
+                                    <span>Occupied: <strong style={{ color: 'var(--primary)' }}>{Object.values(effectiveOccupied).filter(Boolean).length}</strong></span>
+                                 </div>
+                             </div>
+                           </div>
                     </div>
-
-                    {/* ── RIGHT: Seat → Student roster table ── */}
-                    <div className="card" style={{ flex: '1 1 40%', minWidth: 0, maxHeight: 680, display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0' }}>
-                            <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-                                <User size={17} color="var(--primary-color)" />
-                                Seat Roster
-                                {filterDate && (
-                                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)', background: '#f1f5f9', padding: '2px 8px', borderRadius: 20 }}>
-                                        {filterDate}
-                                    </span>
-                                )}
-                            </h2>
-                        </div>
-
-                        <div style={{ overflowY: 'auto', flex: 1 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                                <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
-                                    <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                                        <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: 'var(--text-muted)', width: 70 }}>Seat</th>
-                                        <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>Student Name</th>
-                                        <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>Mentor</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {seatRows.map(({ seatNum, name, mentor }) => (
-                                        <tr
-                                            key={seatNum}
-                                            style={{
-                                                borderBottom: '1px solid #f1f5f9',
-                                                background: name ? '#fff' : '#fafafa',
-                                                transition: 'background 0.15s',
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.background = name ? '#f0f7ff' : '#f1f5f9'}
-                                            onMouseLeave={e => e.currentTarget.style.background = name ? '#fff' : '#fafafa'}
-                                        >
-                                            <td style={{ padding: '9px 16px', textAlign: 'center' }}>
-                                                <span style={{
-                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                                    width: 30, height: 30, borderRadius: 6, fontSize: '0.8rem', fontWeight: 700,
-                                                    background: name ? 'var(--primary-color)' : '#e2e8f0',
-                                                    color: name ? '#fff' : '#94a3b8',
-                                                }}>
-                                                    {seatNum}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '9px 16px', color: name ? 'var(--text-color)' : 'var(--text-muted)', fontStyle: name ? 'normal' : 'italic' }}>
-                                                {name ?? '— empty —'}
-                                            </td>
-                                            <td style={{ padding: '9px 16px' }}>
-                                                {mentor ? (
-                                                    <span className="badge" style={{ background: '#f1f5f9', color: 'var(--primary-color)', fontWeight: 600, fontSize: '0.72rem' }}>
-                                                        {mentor}
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ color: '#cbd5e1' }}>—</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
+                     {/* Bottom Seat Roster (Full Width) */}
+                     <div className="card seat-roster-card" style={{ padding: 0, marginTop: 24, width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ padding: '18px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                             <h2 style={{ fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: 10, fontWeight: 800, color: 'var(--text-color)' }}>
+                                 <User size={19} color="var(--primary)" />
+                                 Extended Seat Roster
+                                 {filterDate && (
+                                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', background: '#e0e7ff', padding: '3px 12px', borderRadius: 20, marginLeft: 8 }}>
+                                         {filterDate} {filterTimeSlot !== 'ALL' ? `| ${filterTimeSlot}` : ''}
+                                     </span>
+                                 )}
+                             </h2>
+                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                 Showing {seatRows.length} assigned students
+                             </div>
+                         </div>
+ 
+                         <div style={{ overflowX: 'auto' }}>
+                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                 <thead>
+                                     <tr style={{ borderBottom: '2px solid #e2e8f0', background: '#f1f5f9' }}>
+                                         <th style={{ padding: '12px 24px', textAlign: 'center', fontWeight: 700, color: '#475569', width: 80 }}>Seat</th>
+                                         <th style={{ padding: '12px 20px', textAlign: 'left', fontWeight: 700, color: '#475569' }}>Student Name</th>
+                                         <th style={{ padding: '12px 20px', textAlign: 'left', fontWeight: 700, color: '#475569' }}>USN</th>
+                                         <th style={{ padding: '12px 20px', textAlign: 'left', fontWeight: 700, color: '#475569' }}>Batch</th>
+                                         <th style={{ padding: '12px 20px', textAlign: 'left', fontWeight: 700, color: '#475569' }}>Session</th>
+                                         <th style={{ padding: '12px 20px', textAlign: 'left', fontWeight: 700, color: '#475569' }}>Mentor</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                     {seatRows.map(({ seatNum, name, usn, mentor, batch, slot }) => (
+                                         <tr
+                                             key={`${seatNum}-${slot}`}
+                                             style={{
+                                                 borderBottom: '1px solid #f1f5f9',
+                                                 background: '#fff',
+                                                 transition: 'background 0.1s ease',
+                                             }}
+                                             onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                             onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                                         >
+                                             <td style={{ padding: '12px 24px', textAlign: 'center' }}>
+                                                 <span style={{
+                                                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                     width: 34, height: 34, borderRadius: 8, fontSize: '0.85rem', fontWeight: 800,
+                                                     background: 'var(--primary)',
+                                                     color: '#fff',
+                                                     boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                                                 }}>
+                                                     {seatNum}
+                                                 </span>
+                                             </td>
+                                             <td style={{ padding: '12px 20px', fontWeight: 600, color: 'var(--text-color)' }}>
+                                                 {name}
+                                             </td>
+                                             <td style={{ padding: '12px 20px', fontFamily: 'monospace', color: '#64748b', fontSize: '0.85rem' }}>
+                                                 {usn}
+                                             </td>
+                                             <td style={{ padding: '12px 20px' }}>
+                                                 <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, border: '1px solid #e2e8f0' }}>
+                                                     {batch || '—'}
+                                                 </span>
+                                             </td>
+                                             <td style={{ padding: '12px 20px' }}>
+                                                 <span style={{ 
+                                                     background: slot === 'FN' ? '#ecfdf5' : slot === 'AN' ? '#fff7ed' : '#f1f5f9', 
+                                                     color: slot === 'FN' ? '#059669' : slot === 'AN' ? '#d97706' : '#64748b', 
+                                                     padding: '4px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 800,
+                                                     border: '1px solid currentColor',
+                                                     borderOpacity: 0.1
+                                                 }}>
+                                                     {slot || '—'}
+                                                 </span>
+                                             </td>
+                                             <td style={{ padding: '12px 20px' }}>
+                                                 {mentor ? (
+                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }} />
+                                                         <span style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
+                                                             {mentor}
+                                                         </span>
+                                                     </div>
+                                                 ) : (
+                                                     <span style={{ color: '#cbd5e1' }}>—</span>
+                                                 )}
+                                             </td>
+                                         </tr>
+                                     ))}
                                     {seatRows.length === 0 && (
                                         <tr>
                                             <td colSpan={2} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -509,13 +648,32 @@ const RoomAllotmentDetail = () => {
                     <form onSubmit={handleCreate}>
                         <div style={{ display: 'flex', gap: 16 }}>
                             <div className="form-group" style={{ flex: 1 }}>
-                                <label className="form-label">Select Batch</label>
-                                <select required className="form-control" value={formData.batch_id} onChange={e => setFormData({ ...formData, batch_id: e.target.value })}>
-                                    <option value="">— Choose Batch —</option>
+                                <label className="form-label">Select Batches</label>
+                                <div style={{ 
+                                    maxHeight: 140, overflowY: 'auto', border: '1px solid var(--border-color)', 
+                                    borderRadius: 10, padding: '12px', background: '#fff',
+                                    display: 'flex', flexDirection: 'column', gap: 8
+                                }}>
                                     {batches.map(b => (
-                                        <option key={b.id} value={b.id}>{b.batch_code} ({b.max_students} capacity)</option>
+                                        <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
+                                            <input
+                                                type="checkbox"
+                                                id={`batch-${b.id}`}
+                                                checked={formData.batch_ids.includes(b.id)}
+                                                onChange={() => {
+                                                    const ids = [...formData.batch_ids];
+                                                    ids.includes(b.id) ? ids.splice(ids.indexOf(b.id), 1) : ids.push(b.id);
+                                                    setFormData({ ...formData, batch_ids: ids });
+                                                }}
+                                                style={{ width: 16, height: 16, cursor: 'pointer' }}
+                                            />
+                                            <label htmlFor={`batch-${b.id}`} style={{ fontSize: '0.85rem', cursor: 'pointer', fontWeight: 500, color: 'var(--text-color)' }}>
+                                                {b.batch_code} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({b.max_students} cap)</span>
+                                            </label>
+                                        </div>
                                     ))}
-                                </select>
+                                    {batches.length === 0 && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: 10 }}>No batches found</div>}
+                                </div>
                             </div>
                             <div className="form-group" style={{ flex: 1 }}>
                                 <label className="form-label">Assign Mentor</label>
@@ -536,7 +694,16 @@ const RoomAllotmentDetail = () => {
                             </div>
                             <div className="form-group" style={{ flex: 1 }}>
                                 <label className="form-label">Time Slot</label>
-                                <input type="text" className="form-control" placeholder="e.g. FN, AN, 09:00-10:00" value={formData.time_slot} onChange={e => setFormData({ ...formData, time_slot: e.target.value })} />
+                                <select 
+                                    className="form-control" 
+                                    value={formData.time_slot} 
+                                    onChange={e => setFormData({ ...formData, time_slot: e.target.value })}
+                                    style={{ padding: '8px 12px' }}
+                                >
+                                    <option value="FN">FN (Morning)</option>
+                                    <option value="AN">AN (Afternoon)</option>
+                                    <option value="FULL">FULL (Whole Day)</option>
+                                </select>
                             </div>
                         </div>
 
@@ -598,7 +765,19 @@ const RoomAllotmentDetail = () => {
                 </div>
             )}
         </div>
-    );
+        
+        {/* Dedicated Print Report (Only visible in PDF) */}
+        <div className="print-only">
+            <PrintableRoomReport 
+                roomDetails={roomDetails}
+                effectiveOccupied={effectiveOccupied}
+                activeSessionMentors={activeSessionMentors}
+                filterDate={filterDate}
+                filterTimeSlot={filterTimeSlot}
+            />
+        </div>
+    </>
+);
 };
 
 export default RoomAllotmentDetail;
