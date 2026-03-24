@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_exempt
 
-from allocation.models import Allocation, Batch, Mentor, Room, Seat, Session, Student
+from allocation.models import Allocation, Batch, Mentor, Room, Seat, Session, Student, SystemLog
 from allocation.services import (
     allocate_batch_to_room,
     generate_seats_for_room,
@@ -598,4 +598,30 @@ def mentor_delete(request, mentor_id):
         except Exception as error:
             return _json_error(error)
 
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+@csrf_exempt
+def get_system_logs(request):
+    if request.method == "GET":
+        try:
+            logs = list(SystemLog.objects.all()[:100].values(
+                "id", "action_type", "model_name", "object_repr", "user", "timestamp", "details"
+            ))
+            return JsonResponse({"logs": logs})
+        except Exception as error:
+            return _json_error(error)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def initialize_system_logs(request):
+    if request.method == "POST":
+        try:
+            if not SystemLog.objects.filter(details="Initial Seed").exists():
+                SystemLog.objects.create(action_type="CREATE", model_name="Room", object_repr="Room CyberFort", user="Admin", details="Initial Seed")
+                SystemLog.objects.create(action_type="CREATE", model_name="Student", object_repr="Added 26 Students", user="Admin", details="Initial Seed")
+                SystemLog.objects.create(action_type="CREATE", model_name="Room", object_repr="Room Alphanet", user="Admin", details="Initial Seed")
+                SystemLog.objects.create(action_type="ALLOT", model_name="Allocation", object_repr="MSC Batch Allotment", user="Admin", details="Initial Seed")
+            return JsonResponse({"message": "Logs initialized successfully"})
+        except Exception as error:
+            return _json_error(error)
     return JsonResponse({"error": "Method not allowed"}, status=405)
