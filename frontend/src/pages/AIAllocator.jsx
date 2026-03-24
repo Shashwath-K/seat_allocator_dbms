@@ -32,23 +32,23 @@ const AIAllocator = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
         })
-        .then(r => r.json())
-        .then(data => {
-            const aiMsg = {
-                role: 'assistant',
-                content: data.reply || data.error || 'No response received.',
-                proposal: data.proposal || null,
-                requiresConfirmation: data.requires_confirmation || false
-            };
-            setMessages(prev => [...prev, aiMsg]);
-            if (data.requires_confirmation && data.proposal) {
-                setPendingProposal(data.proposal);
-            }
-        })
-        .catch(err => {
-            setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${err.message}`, proposal: null }]);
-        })
-        .finally(() => setLoading(false));
+            .then(r => r.json())
+            .then(data => {
+                const aiMsg = {
+                    role: 'assistant',
+                    content: data.reply || data.error || 'No response received.',
+                    proposal: data.proposal || null,
+                    requiresConfirmation: data.requires_confirmation || false
+                };
+                setMessages(prev => [...prev, aiMsg]);
+                if (data.requires_confirmation && data.proposal) {
+                    setPendingProposal(data.proposal);
+                }
+            })
+            .catch(err => {
+                setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${err.message}`, proposal: null }]);
+            })
+            .finally(() => setLoading(false));
     };
 
     const confirmProposal = () => {
@@ -61,18 +61,18 @@ const AIAllocator = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ proposal: pendingProposal })
         })
-        .then(r => r.json())
-        .then(data => {
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: `✅ **Done!** ${data.reply || data.error}`,
-                proposal: null
-            }]);
-        })
-        .catch(err => {
-            setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Confirmation failed: ${err.message}`, proposal: null }]);
-        })
-        .finally(() => setLoading(false));
+            .then(r => r.json())
+            .then(data => {
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: `✅ **Done!** ${data.reply || data.error}`,
+                    proposal: null
+                }]);
+            })
+            .catch(err => {
+                setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Confirmation failed: ${err.message}`, proposal: null }]);
+            })
+            .finally(() => setLoading(false));
     };
 
     const rejectProposal = () => {
@@ -94,7 +94,7 @@ const AIAllocator = () => {
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 110px)' }}>
             <header className="page-header" style={{ marginBottom: 16 }}>
                 <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Sparkles size={28} color="var(--primary)" /> AI Allocator
+                    <Sparkles size={28} color="var(--primary)" /> AI Query (Preview)
                 </h1>
                 <p className="page-subtitle">Converse naturally to query or modify the allocation schedule. Write actions require manual confirmation.</p>
             </header>
@@ -105,10 +105,10 @@ const AIAllocator = () => {
                     {messages.map((msg, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 14 }}>
                             {msg.role === 'assistant' && (
-                                <div style={{ 
-                                    width: 40, height: 40, borderRadius: '12px', 
-                                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', 
-                                    color: '#fff', display: 'flex', alignItems: 'center', 
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+                                    color: '#fff', display: 'flex', alignItems: 'center',
                                     justifyContent: 'center', flexShrink: 0,
                                     boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
                                 }}>
@@ -127,7 +127,7 @@ const AIAllocator = () => {
                                 border: msg.role === 'user' ? 'none' : '1px solid var(--surface-border)'
                             }}>
                                 {formatContent(msg.content)}
-                                
+
                                 {/* Confirmation Card for write proposals */}
                                 {msg.requiresConfirmation && pendingProposal && i === messages.length - 1 && (
                                     <div style={{ marginTop: 16, padding: 16, background: 'rgba(255,255,255,0.6)', borderRadius: 12, border: '1px solid rgba(79, 70, 229, 0.1)', backdropFilter: 'blur(4px)' }}>
@@ -150,9 +150,9 @@ const AIAllocator = () => {
                                 )}
                             </div>
                             {msg.role === 'user' && (
-                                <div style={{ 
-                                    width: 40, height: 40, borderRadius: '12px', 
-                                    background: 'white', display: 'flex', alignItems: 'center', 
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: '12px',
+                                    background: 'white', display: 'flex', alignItems: 'center',
                                     justifyContent: 'center', flexShrink: 0,
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                                     border: '1px solid var(--surface-border)'
@@ -165,26 +165,26 @@ const AIAllocator = () => {
 
                     {loading && (
                         <div style={{ display: 'flex', gap: 14 }}>
-                            <div style={{ 
-                                width: 40, height: 40, borderRadius: '12px', 
-                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', 
-                                color: '#fff', display: 'flex', alignItems: 'center', 
+                            <div style={{
+                                width: 40, height: 40, borderRadius: '12px',
+                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+                                color: '#fff', display: 'flex', alignItems: 'center',
                                 justifyContent: 'center', flexShrink: 0
                             }}>
                                 <Bot size={20} />
                             </div>
-                            <div style={{ 
-                                padding: '16px 20px', 
-                                background: 'white', 
-                                borderRadius: '20px 20px 20px 4px', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 10, 
+                            <div style={{
+                                padding: '16px 20px',
+                                background: 'white',
+                                borderRadius: '20px 20px 20px 4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
                                 color: 'var(--text-muted)',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                                 border: '1px solid var(--surface-border)'
                             }}>
-                                <Loader size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }} /> 
+                                <Loader size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }} />
                                 <span style={{ fontWeight: 500 }}>AI is thinking…</span>
                             </div>
                         </div>
