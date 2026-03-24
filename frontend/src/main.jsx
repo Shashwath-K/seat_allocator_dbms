@@ -9,7 +9,8 @@ import Students from './pages/Students.jsx'
 import Rooms from './pages/Rooms.jsx'
 import Allotment from './pages/Allotment.jsx'
 import RoomAllotmentDetail from './pages/RoomAllotmentDetail.jsx'
-import Database from './pages/Database.jsx'
+import Logs from './pages/Logs.jsx';
+import DatabaseDashboard from './pages/DatabaseDashboard.jsx';
 import Mentors from './pages/Mentors.jsx'
 import MentorDetail from './pages/MentorDetail.jsx'
 import AIAllocator from './pages/AIAllocator.jsx'
@@ -50,7 +51,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/database",
-        element: <Database />
+        element: <DatabaseDashboard />
       },
       {
         path: "/mentors",
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
       {
         path: "/mentors/:mentorId",
         element: <MentorDetail />
+      },
+      {
+        path: "logs",
+        element: <Logs />,
       },
       {
         path: "/ai",
