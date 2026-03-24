@@ -572,6 +572,17 @@ class Allocation(models.Model):
         # time_slot). Any combination of those four fields would correctly
         # identify a unique BOOKING, but as a row-level constraint it fires
         # on the 2nd student row insert (duplicate tuple). SQLite partial
+        # ── Design note on Rule 3 constraints ───────────────────────────
+        # Rule 3 (one batch per room per slot, one room per batch per slot)
+        # is enforced at the VIEW and API layer (pre-insert query checks)
+        # rather than via a DB UniqueConstraint here.
+        #
+        # Why not a DB constraint?
+        # Allocation stores ONE ROW PER STUDENT. A batch of 30 students in
+        # Room A on 2026-03-12 FN → 30 rows, all sharing (batch, room, date,
+        # time_slot). Any combination of those four fields would correctly
+        # identify a unique BOOKING, but as a row-level constraint it fires
+        # on the 2nd student row insert (duplicate tuple). SQLite partial
         # indexes cannot make this "per-booking" without a separate
         # BatchSchedule table.
         #
@@ -579,3 +590,25 @@ class Allocation(models.Model):
         #   views.py   allocate_manual  → batch_slot_conflict + room_slot_conflict
         #   api_views.py allocate_manual → same checks
 
+
+class SystemLog(models.Model):
+    ACTION_CHOICES = [
+        ("CREATE", "Create"),
+        ("UPDATE", "Update"),
+        ("DELETE", "Delete"),
+        ("ALLOT", "Allotment"),
+    ]
+    action_type = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    model_name = models.CharField(max_length=50)
+    object_id = models.IntegerField(null=True, blank=True)
+    object_repr = models.CharField(max_length=255)
+    user = models.CharField(max_length=50, default="Admin")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"[{self.timestamp}] {self.user} - {self.action_type} {self.model_name}: {self.object_repr}"
+
+    class Meta:
+        db_table = "system_log"
+        ordering = ["-timestamp"]
