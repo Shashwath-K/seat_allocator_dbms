@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Users, UserPlus, Monitor, Calendar,
-    DatabaseZap, GraduationCap, Sparkles, ChevronLeft, ChevronRight
+    DatabaseZap, GraduationCap, Sparkles, ChevronLeft, ChevronRight, History
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -67,6 +67,11 @@ const Sidebar = () => {
                 <NavLink to="/ai" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                     <Sparkles size={20} />
                     {!isCollapsed && <span>AI (Preview)</span>}
+                </NavLink>
+
+                <NavLink to="/logs" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+                    <History size={20} />
+                    {!isCollapsed && <span>Logs</span>}
                 </NavLink>
             </nav>
 
