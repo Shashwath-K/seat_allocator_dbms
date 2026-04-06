@@ -15,6 +15,18 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+        
+    if 'runserver' in sys.argv and os.environ.get('RUN_MAIN') != 'true':
+        import subprocess
+        frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend')
+        print("Starting Vite frontend server...")
+        # Use CREATE_NEW_CONSOLE on Windows to prevent hanging the parent process
+        creationflags = 0
+        if os.name == 'nt':
+            import subprocess as sp
+            creationflags = sp.CREATE_NEW_CONSOLE
+        subprocess.Popen(['npm', 'run', 'dev'], cwd=frontend_dir, shell=True, creationflags=creationflags)
+    
     execute_from_command_line(sys.argv)
 
 
