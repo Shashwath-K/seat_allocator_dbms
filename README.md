@@ -1,189 +1,225 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <a id="readme-top"></a>
 
-<!-- PROJECT LOGO -->
-<br />
 <div align="center">
-  <h3 align="center">AI Seat Allocator & Management System</h3>
-  <p align="center">
-    A Semantic-Aware Room Allotment Engine powered by Local LLMs and NL-to-SQL.
-    <br />
-    <a href="https://github.com/Shashwath-K/seat_allocator_dbms"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="#">View Demo</a>
-    &middot;
-    <a href="https://github.com/Shashwath-K/seat_allocator_dbms/issues">Report Bug</a>
-    &middot;
-    <a href="https://github.com/Shashwath-K/seat_allocator_dbms/issues">Request Feature</a>
-  </p>
+
+<h1>AI Seat Allocator & Management System</h1>
+<p><strong>Semantic-Aware Room Allotment Engine powered by Local LLMs</strong></p>
+
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Django](https://img.shields.io/badge/Django-5.0%2B-092E20?style=for-the-badge&logo=django&logoColor=white)](https://djangoproject.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
+[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.com)
+
 </div>
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+---
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+## ![Objectives](https://img.shields.io/badge/-Project%20Objectives-blue?style=flat-square&logo=target)
 
-The **AI Seat Allocator & Management System** is a sophisticated architectural solution designed to automate and optimize the complex task of room allotment in educational and corporate environments. By integrating **Local Large Language Models (via Ollama)**, it enables administrators to manage batches, rooms, and assignments using intuitive natural language.
+This system was engineered to transform traditional institutional resource management into a semantic-aware automation platform:
 
-### Key Features:
-* **Conversational AI Interface**: Query the database using English (e.g., "Which rooms are empty today?") powered by a robust NL-to-SQL engine.
-* **Intelligent Allotment Proposals**: Don't just automate—collaborate. The AI suggests optimized seating plans (Sequential or Shuffle) which are executed only after human-in-the-loop confirmation.
-* **Specialized Room Support**: 
-    - **Labs**: System-constrained layouts with student-to-hardware mapping.
-    - **Conference Rooms**: Variable row configurations for executive seating.
-    - **Regular Classrooms**: Matrix-based seating with row/column optimization.
-* **Conflict-Aware Scheduling**: Automatic detection of double-bookings for rooms, mentors, and student batches across specific dates and time slots (FN/AN).
-* **Audit Logging**: Comprehensive system logs tracking minden change, from batch creation to seat reallocation.
+### Objective 1 — Semantic-Aware Resource Discovery
+Implement a Natural Language interface that allows administrators to query real-time database state using conversational English. By leveraging **NL-to-SQL** technology, the system answers questions like *"Which labs are available tomorrow morning?"* or *"How many seats are left in Room 101?"* without requiring technical SQL knowledge.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+### Objective 2 — Intelligent Allocation Proposals
+Bridge the gap between automation and human oversight through an **AI Proposal Engine**. Instead of immediate database mutations, the system generates human-readable allocation proposals (with strategy-based seating like **Shuffle**, **Sequential**, or **Chaos**) that require explicit confirmation before execution.
 
-### Built With
+### Objective 3 — Specialized Room & Conflict Management
+Provide diverse architectural support for different physical environments:
+- **Labs** — Hardware-constrained layouts with student-to-system mapping.
+- **Conference Rooms** — Variable row configurations for executive seating.
+- **Regular Rooms** — Standard matrix-based seating.
+All modes feature real-time conflict detection across Rooms, Mentors, and Batches.
 
-This project leverages a modern full-stack architecture for performance and local-first intelligence:
+---
 
-[![React][React]][React-url][![Vite][Vite]][Vite-url][![Django][Django]][Django-url][![Ollama][Ollama]][Ollama-url][![SQLite][SQLite]][SQLite-url][![Lucide][Lucide]][Lucide-url]
+## ![Architecture](https://img.shields.io/badge/-Architecture%20Overview-blue?style=flat-square&logo=gitkraken)
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+```
+AI Seat Allocation & Management System
+│
+├── AI Engine (allocation/ai_views.py) ← NL Processing & Proposal Logic
+│   ├── ollama_client.py               ← Local LLM interface (Ollama)
+│   ├── ai_data.py                     ← Context building for model awareness
+│   └── NL-to-SQL Prompt               ← Semantic mapping to SQLite
+│
+├── Core Backend (allocation/services.py) ← Transactional Business Logic
+│   ├── batch_manager.py               ← CRUD for student groups
+│   ├── room_manager.py                ← Capacity and layout calculations
+│   └── allocation_engine.py           ← Seat assignment strategies
+│
+└── Web Application (frontend/)        ← React + Vite Modern UI
+    ├── API Client (Axios)             ← Communication with Django REST
+    └── Responsive Dashboard           ← Interactive allocation workspace
+```
 
-<!-- GETTING STARTED -->
-## Getting Started
+### Data Flow (NL-to-SQL Process)
 
-To set up a local development environment, follow these steps.
+```
+Natural Language Input (User)
+    │
+    ▼
+[ollama_client.py] ──Prompt Engineering──▶ Local LLM (Llama3.2)
+    │
+    ▼
+[ai_views.py] ──Parse SQL──▶ Proposed SQLite Query
+    │
+    ▼
+[Database Execution] ──JSON Results──▶ Contextual Answer
+    │
+    ▼
+Conversational Response (User)
+```
+
+---
+
+## ![Tech Stack](https://img.shields.io/badge/-Technology%20Stack-blue?style=flat-square&logo=codeforces)
+
+### Backend / AI Engine
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Framework | Django 5.0+ | Core REST API and ORM logic |
+| AI Inference | Ollama | Local LLM hosting (Llama3.2/SmolLM2) |
+| Database | SQLite | Relational storage for batches/allocations |
+| Business Logic | Python Services | Atomic transactions and strategy logic |
+| Environment | Virtualenv | Dependency isolation |
+
+### Frontend (Dashboard)
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Library | React 19 + Vite | State-of-the-art SPA performance |
+| Icons | Lucide React | Modern, consistent iconography |
+| Styling | Standard CSS | High-performance, low-abstraction UI |
+| HTTP Client | Axios | Seamless async backend communication |
+
+---
+
+## ![Structure](https://img.shields.io/badge/-Project%20Structure-blue?style=flat-square&logo=files)
+
+```
+Allocation_DB_Summarizer/
+│
+├── 📂 allocation/              # Core Django Application
+│   ├── ai_views.py              # NL-to-SQL + Proposal handlers
+│   ├── ollama_client.py         # Ollama API communication wrapper
+│   ├── services.py              # Core business logic (Allocate, Reallocate)
+│   ├── models.py                # System Schema (Batch, Student, Room, etc.)
+│   └── signals.py               # Auto-generation of room seats
+│
+├── 📂 frontend/                # React + Vite Application
+│   ├── 📂 src/
+│   │   ├── 📂 pages/            # AI Allocator, Batches, Rooms, Logs
+│   │   ├── 📂 components/       # Layouts, Sidebar, Modals
+│   │   └── App.jsx              # Routing and Main Entry
+│   └── package.json
+│
+├── 📂 documentation/           # Project Reports & Diagrams
+├── 📂 seat_allocation/          # Django Project Configuration
+├── System-Architecture.png      # High-level architecture diagram
+├── manage.py                    # Django management script
+└── README.md                    # This professional documentation
+```
+
+---
+
+## ![Quick Start](https://img.shields.io/badge/-Quick%20Start-green?style=flat-square&logo=rocket)
 
 ### Prerequisites
 
-* **Python 3.10+**
-* **Node.js 18+**
-* **Ollama** (Running locally with `smollm2:135m` or `llama3.2`)
-  ```sh
-  ollama run smollm2:135m
-  ```
+```bash
+# Python 3.10+ required
+python --version
 
-### Installation
+# Node.js 18+ required
+node --version
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/Shashwath-K/seat_allocator_dbms.git
-   ```
-2. **Backend Setup**
-   ```sh
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install django django-cors-headers  # and other dependencies
-   python manage.py migrate
-   python manage.py runserver
-   ```
-3. **Frontend Setup**
-   ```sh
-   cd frontend
-   npm install
-   npm run dev
-   ```
+# Ollama installed and running
+ollama --version
+```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+### 1. Initialize Intelligence Engine
 
-<!-- USAGE EXAMPLES -->
-## Usage
+```bash
+# Pull and start the recommended model
+ollama run smollm2:135m  # or llama3.2
+```
 
-### 1. System Architecture
-Comprehensive view of how the Semantic-Aware Allotment Engine processes natural language into actionable database operations.
-![Architecture Diagram](System-Architecture-Diagram.png)
+### 2. Backend Installation
 
-### 2. Database Schema (ERD)
-Detailed ER/UML mapping showing relationships between Batches, Students, Rooms, Mentors, and Allocations.
-![ER Diagram](System-ER-UML-Diagram.png)
+```bash
+# Clone the repository
+git clone https://github.com/Shashwath-K/seat_allocator_dbms.git
 
-### 3. AI Allocator Console
-The central hub for natural language querying. Type requests like *"Allocate batch CS-A to Room 101 tomorrow FN"* to generate instant proposals.
+# Install dependencies (from root)
+pip install django django-cors-headers requests
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+# Apply migrations and start server
+python manage.py migrate
+python manage.py runserver
+```
 
-<!-- ROADMAP -->
-## Roadmap
+### 3. Frontend Installation
 
-- [x] NL-to-SQL Query Engine
-- [x] AI-Powered Allocation Proposals
-- [x] Multi-type Room Layout Logic
-- [ ] PDF/Excel Allotment Report Exports
-- [ ] Multi-tenant Institution Support
-- [ ] Mobile App for On-the-go Room Checking
+```bash
+cd frontend
+npm install
+npm run dev
+# Dashboard available at http://localhost:5173
+```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+---
 
-<!-- CONTRIBUTING -->
-## Contributing
+## ![Internal Logic](https://img.shields.io/badge/-Internal%20Logic-blue?style=flat-square&logo=testify)
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+### The Human-in-the-Loop Workflow
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1.  **Request**: User types *"Allocate Batch CS-A-24 to Room 101 for tomorrow's exam."*
+2.  **Intelligence**: `ai_views.py` passes this to Ollama, which identifies a `WRITE` intent and builds a **Proposal JSON**.
+3.  **Validation**: The system checks for existing conflicts (Room busy, Mentor booked, etc.) before showing the proposal.
+4.  **Confirmation**: The user reviews the proposal details (Student count, Strategy, Slot).
+5.  **Atomic Execution**: Upon clicking "Confirm", `services.py` executes a transaction that creates the `Session` and `Allocation` rows simultaneously.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+### Allocation Strategies
 
-<!-- LICENSE -->
-## License
+| Strategy | Description | Best For |
+|---|---|---|
+| **Sequential** | Students assigned seats 1, 2, 3... in order. | Standard classes |
+| **Shuffle** | Randomized seating distribution within the room. | High-security exams |
+| **Chaos** | Interleaved seating (Student 1, Student n, Student 2, Student n-1). | Reducing collaboration |
+| **Uneven** | Leaves every alternate seat empty. | Social distancing / Lab exams |
 
-Distributed under the Unlicense License. See `LICENSE` for more information (if applicable).
+---
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## ![Output](https://img.shields.io/badge/-Output%20Examples-blue?style=flat-square&logo=chart-dot)
 
-<!-- CONTACT -->
-## Contact
+### AI Proposal Example
+```json
+{
+  "action": "allocate_batch",
+  "summary": "Allocate CS-A-24 to Lab 102 on 2026-04-12 FN",
+  "parameters": {
+    "batch_id": 4,
+    "room_id": 12,
+    "strategy": "shuffle",
+    "date": "2026-04-12",
+    "time_slot": "FN"
+  }
+}
+```
 
-Shashwath K - [Email](shashwathkukkunoor@outlook.com)
+### Audit Logs
+The system tracks every mutation in `SystemLog`, including:
+- Time of transaction
+- User who performed the action
+- Specific changes (e.g., *"Reallocated 30 students in Room 101 using Chaos strategy"*)
 
-Project Link: [https://github.com/Shashwath-K/seat_allocator_dbms](https://github.com/Shashwath-K/seat_allocator_dbms)
+---
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## ![License](https://img.shields.io/badge/-License-blue?style=flat-square&logo=read-the-docs)
 
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* [Ollama](https://ollama.com) for local LLM inferencing
-* [Django](https://www.djangoproject.com/) for the robust backend framework
-* [Lucide React](https://lucide.dev/) for the modern UI iconography
-* [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
+Distributed under the Unlicense License. See `LICENSE` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- MARKDOWN LINKS & IMAGES -->
-[React]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Vite]: https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white
-[Vite-url]: https://vitejs.dev/
-[Django]: https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white
-[Django-url]: https://www.djangoproject.com/
-[Ollama]: https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white
-[Ollama-url]: https://ollama.com/
-[SQLite]: https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white
-[SQLite-url]: https://www.sqlite.org/
-[Lucide]: https://img.shields.io/badge/Lucide-FF4154?style=for-the-badge&logo=lucide&logoColor=white
-[Lucide-url]: https://lucide.dev/
