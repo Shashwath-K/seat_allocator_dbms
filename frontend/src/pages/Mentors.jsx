@@ -117,7 +117,7 @@ const Mentors = () => {
                             placeholder="Search by name or code..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: 48, background: 'rgba(0,0,0,0.02)' }}
+                            style={{ paddingLeft: 48 }}
                         />
                     </div>
                     
@@ -125,7 +125,7 @@ const Mentors = () => {
                         <Filter size={18} style={{ color: 'var(--primary)' }} />
                         <select 
                             className="form-control" 
-                            style={{ width: 200, background: 'rgba(0,0,0,0.02)' }}
+                            style={{ width: 200 }}
                             value={deptFilter}
                             onChange={(e) => setDeptFilter(e.target.value)}
                         >
@@ -175,7 +175,7 @@ const Mentors = () => {
                                                     background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', 
                                                     color: '#fff', display: 'flex', alignItems: 'center', 
                                                     justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem',
-                                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                                                    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)'
                                                 }}>
                                                     {mentor.name.substring(0, 2).toUpperCase()}
                                                 </div>
@@ -183,12 +183,7 @@ const Mentors = () => {
                                             </div>
                                         </td>
                                         <td>
-                                            <code style={{ 
-                                                background: 'rgba(79, 70, 229, 0.05)', 
-                                                padding: '4px 8px', borderRadius: 6, 
-                                                color: 'var(--primary)', fontWeight: 700,
-                                                fontSize: '0.8125rem', border: '1px solid rgba(79, 70, 229, 0.1)'
-                                            }}>{mentor.mentor_code}</code>
+                                            <code>{mentor.mentor_code}</code>
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main)', fontWeight: 500 }}>
@@ -212,11 +207,8 @@ const Mentors = () => {
                                                     <Pencil size={14} style={{ marginRight: 4 }} />Edit
                                                 </button>
                                                 <button
-                                                    className="btn btn-outline"
-                                                    style={{ 
-                                                        padding: '6px 12px', fontSize: '0.75rem', height: 'auto',
-                                                        borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--danger)'
-                                                    }}
+                                                    className="btn btn-danger"
+                                                    style={{ padding: '6px 12px', fontSize: '0.75rem' }}
                                                     onClick={e => handleDelete(mentor, e)}
                                                 >
                                                     <Trash2 size={14} style={{ marginRight: 4 }} />Delete
@@ -237,9 +229,9 @@ const Mentors = () => {
 
             {/* Create Mentor Modal */}
             {isModalOpen && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setIsModalOpen(false)}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setIsModalOpen(false)}>
                     <div className="card fade-in" style={{ width: '100%', maxWidth: 500, padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--surface-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)' }}>
                             <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <GraduationCap color="var(--primary-color)" /> {editMentor ? 'Edit Mentor' : 'Add New Mentor'}
                             </h2>

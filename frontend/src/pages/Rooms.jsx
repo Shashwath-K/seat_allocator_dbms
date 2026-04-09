@@ -112,9 +112,9 @@ const Rooms = () => {
                     {Array.from({ length: Math.min(rows, 30) }).map((_, rowIdx) => (
                         <div key={`prev-row-${rowIdx}`} style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                             {Array.from({ length: Math.min(tables, 15) }).map((_, tableIdx) => (
-                                <div key={`prev-table-${rowIdx}-${tableIdx}`} style={{ display: 'flex', gap: '4px', padding: '4px', background: '#e2e8f0', borderRadius: '4px' }}>
+                                <div key={`prev-table-${rowIdx}-${tableIdx}`} style={{ display: 'flex', gap: '4px', padding: '4px', background: 'var(--surface-2)', borderRadius: '4px' }}>
                                     {Array.from({ length: Math.min(seats, 10) }).map((_, seatIdx) => (
-                                        <div key={`prev-seat-${seatIdx}`} style={{ width: '12px', height: '12px', borderRadius: '2px', background: '#fff', border: '1px solid #cbd5e1' }} />
+                                        <div key={`prev-seat-${seatIdx}`} style={{ width: '12px', height: '12px', borderRadius: '2px', background: 'var(--surface)', border: '1px solid var(--surface-border)' }} />
                                     ))}
                                 </div>
                             ))}
@@ -139,7 +139,7 @@ const Rooms = () => {
 
             return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', width: '100%' }}>
-                    <div style={{ width: '30px', height: '8px', background: '#94a3b8', borderRadius: '2px', marginBottom: '8px', fontSize: '0.4rem', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>STAGE</div>
+                    <div style={{ width: '30px', height: '8px', background: 'var(--surface-border)', borderRadius: '2px', marginBottom: '8px', fontSize: '0.4rem', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>STAGE</div>
                     {layoutArr.slice(0, 30).map((seatsInRow, rowIdx) => {
                         const rowSeats = [];
                         for (let i = 0; i < Math.min(seatsInRow, 60); i++) {
@@ -150,7 +150,7 @@ const Rooms = () => {
 
                             rowSeats.push(
                                 <div key={`prev-conf-${rowIdx}-${i}`} style={{
-                                    width: '12px', height: '12px', borderRadius: '2px', background: '#cbd5e1',
+                                    width: '12px', height: '12px', borderRadius: '2px', background: 'var(--surface-border)',
                                     transform: `translateY(${translateY}px) rotate(${rotate}deg)`
                                 }} />
                             );
@@ -174,7 +174,7 @@ const Rooms = () => {
             return (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', maxWidth: '100%' }}>
                     {Array.from({ length: Math.min(systems, 200) }).map((_, i) => (
-                        <div key={`prev-lab-${i}`} style={{ width: '16px', height: '16px', borderRadius: '3px', background: '#e2e8f0', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div key={`prev-lab-${i}`} style={{ width: '16px', height: '16px', borderRadius: '3px', background: 'var(--surface-2)', border: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Monitor size={8} color="#64748b" />
                         </div>
                     ))}
@@ -242,7 +242,7 @@ const Rooms = () => {
                             return matchesSearch && matchesType;
                         }).map(r => (
                             <div key={r.id} className="card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ padding: '24px', background: 'rgba(255,255,255,0.4)', borderBottom: '1px solid var(--surface-border)' }}>
+                                <div style={{ padding: '20px 22px', background: 'var(--surface-2)', borderBottom: '1px solid var(--surface-border)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <div>
                                             <h3 style={{ margin: '0 0 6px 0', fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>{r.room_name}</h3>
@@ -255,26 +255,26 @@ const Rooms = () => {
                                                 onClick={e => handleGenerateSeats(r, e)}
                                                 title="Generate Seats"
                                                 className="btn btn-outline"
-                                                style={{ padding: '6px 10px', fontSize: '0.75rem', height: 'auto', background: 'white' }}
+                                                style={{ padding: '5px 9px', fontSize: '0.75rem' }}
                                             >⚙️</button>
                                             <button
                                                 onClick={e => handleDeleteRoom(r, e)}
                                                 title="Delete Room"
-                                                className="btn btn-outline"
-                                                style={{ padding: '6px 10px', fontSize: '0.75rem', height: 'auto', borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--danger)', background: 'white' }}
+                                                className="btn btn-danger"
+                                                style={{ padding: '5px 9px', fontSize: '0.75rem' }}
                                             >✕</button>
                                         </div>
                                     </div>
                                 </div>
-                                <div style={{ padding: '24px', flex: '1' }}>
-                                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)' }}>
+                                <div style={{ padding: '20px', flex: '1' }}>
+                                    <div style={{ background: 'var(--surface-2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)' }}>
                                         {r.room_type === 'regular' && (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
                                                     <span style={{ color: 'var(--text-muted)' }}>Structure</span>
                                                     <span style={{ fontWeight: 600 }}>{r.num_rows}r × {r.tables_per_row}t × {r.seats_per_table}s</span>
                                                 </div>
-                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }}></div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }} />
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Estimated Capacity</span>
                                                     <strong style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>{r.num_rows * r.tables_per_row * r.seats_per_table}</strong>
@@ -287,7 +287,7 @@ const Rooms = () => {
                                                     <span style={{ color: 'var(--text-muted)' }}>Lab Systems</span>
                                                     <span style={{ fontWeight: 600 }}>{r.num_systems} Nodes</span>
                                                 </div>
-                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }}></div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }} />
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Batch Limit</span>
                                                     <strong style={{ fontSize: '1.25rem', color: 'var(--success)' }}>{r.seats_per_batch}</strong>
@@ -298,12 +298,12 @@ const Rooms = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
                                                     <span style={{ color: 'var(--text-muted)' }}>Layout Pattern</span>
-                                                    <span style={{ fontWeight: 600, fontFamily: 'monospace', background: 'white', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--surface-border)' }}>{r.conference_layout}</span>
+                                                    <span style={{ fontWeight: 600, fontFamily: 'monospace', background: 'var(--surface)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--surface-border)', color: 'var(--text-sub)' }}>{r.conference_layout}</span>
                                                 </div>
                                                 <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }}></div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Seats</span>
-                                                    <strong style={{ fontSize: '1.25rem', color: 'var(--purple)' }}>{r.conference_layout.split(',').reduce((a, b) => a + (parseInt(b) || 0), 0)}</strong>
+                                                    <strong style={{ fontSize: '1.25rem', color: '#a78bfa' }}>{r.conference_layout.split(',').reduce((a, b) => a + (parseInt(b) || 0), 0)}</strong>
                                                 </div>
                                             </div>
                                         )}
@@ -312,7 +312,7 @@ const Rooms = () => {
                             </div>
                         ))}
                         {rooms.filter(r => (filterType === 'all' || r.room_type === filterType) && r.room_name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px', color: 'var(--text-muted)', background: 'var(--surface)', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
                                 No facilities match your search criteria.
                             </div>
                         )}
@@ -323,7 +323,7 @@ const Rooms = () => {
             {activeTab === 'create' && (
                 <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
                     <div className="card" style={{ flex: '1 1 500px', maxWidth: '600px' }}>
-                        <h2 style={{ fontSize: '1.1rem', marginBottom: '24px', color: 'var(--primary-color)' }}>Facility Configuration</h2>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '24px', color: 'var(--primary)' }}>Facility Configuration</h2>
                         <form onSubmit={handleCreate}>
                             <div className="form-group">
                                 <label className="form-label">Room Designation</label>
@@ -339,7 +339,7 @@ const Rooms = () => {
                             </div>
 
                             {formData.room_type === 'regular' && (
-                                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', background: '#f7fafc', padding: '16px', border: '1px dashed #cbd5e0', borderRadius: '8px' }}>
+                                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', background: 'var(--surface-2)', padding: '16px', border: '1px dashed var(--surface-border)', borderRadius: '8px' }}>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
                                         <label className="form-label">Rows</label>
                                         <input type="number" required className="form-control" value={formData.num_rows} onChange={e => setFormData({ ...formData, num_rows: e.target.value })} />
@@ -356,7 +356,7 @@ const Rooms = () => {
                             )}
 
                             {formData.room_type === 'lab' && (
-                                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', background: '#f7fafc', padding: '16px', border: '1px dashed #cbd5e0', borderRadius: '8px' }}>
+                                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', background: 'var(--surface-2)', padding: '16px', border: '1px dashed var(--surface-border)', borderRadius: '8px' }}>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
                                         <label className="form-label">Systems</label>
                                         <input type="number" required className="form-control" value={formData.num_systems} onChange={e => setFormData({ ...formData, num_systems: e.target.value })} />
@@ -369,7 +369,7 @@ const Rooms = () => {
                             )}
 
                             {formData.room_type === 'conference' && (
-                                <div style={{ marginTop: '16px', background: '#f7fafc', padding: '16px', border: '1px dashed #cbd5e0', borderRadius: '8px' }}>
+                                <div style={{ marginTop: '16px', background: 'var(--surface-2)', padding: '16px', border: '1px dashed var(--surface-border)', borderRadius: '8px' }}>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
                                         <label className="form-label">Conference Layout (comma separated seats per row)</label>
                                         <input type="text" required className="form-control" placeholder="e.g. 10,15,20" value={formData.conference_layout} onChange={e => setFormData({ ...formData, conference_layout: e.target.value })} />
@@ -386,8 +386,8 @@ const Rooms = () => {
                     </div>
 
                     <div className="card" style={{ flex: '1 1 400px', minHeight: '300px', position: 'sticky', top: '24px' }}>
-                        <h2 style={{ fontSize: '1.1rem', marginBottom: '24px', color: 'var(--primary-color)' }}>Seating Preview</h2>
-                        <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '8px', overflowX: 'auto', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '24px', color: 'var(--primary)' }}>Seating Preview</h2>
+                        <div style={{ background: 'var(--surface-2)', padding: '24px', borderRadius: '8px', overflowX: 'auto', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border)' }}>
                             {renderPreview()}
                         </div>
                     </div>

@@ -96,14 +96,14 @@ const Students = () => {
 
             {activeTab === 'list' && (
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '24px', borderBottom: '1px solid var(--surface-border)', background: 'rgba(255,255,255,0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--surface-border)', background: 'var(--surface-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ position: 'relative', width: '320px' }}>
                             <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
                                 type="text"
                                 className="form-control"
                                 placeholder="Search by USN or Name..."
-                                style={{ paddingLeft: 48, background: 'white' }}
+                                style={{ paddingLeft: 42 }}
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
@@ -133,12 +133,7 @@ const Students = () => {
                                     .map(s => (
                                     <tr key={s.id}>
                                         <td>
-                                            <code style={{ 
-                                                background: 'rgba(79, 70, 229, 0.05)', 
-                                                padding: '4px 8px', borderRadius: 6, 
-                                                color: 'var(--primary)', fontWeight: 700,
-                                                fontSize: '0.8125rem'
-                                            }}>{s.usn}</code>
+                                            <code>{s.usn}</code>
                                         </td>
                                         <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{s.name}</td>
                                         <td>
@@ -154,13 +149,9 @@ const Students = () => {
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
                                             <button
-                                                className="btn btn-outline"
+                                                className="btn btn-danger"
                                                 onClick={() => handleDeleteStudent(s.id, s.name)}
-                                                style={{ 
-                                                    padding: '6px 10px', fontSize: '0.75rem', height: 'auto',
-                                                    borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--danger)',
-                                                    background: 'white'
-                                                }}
+                                                style={{ padding: '5px 10px', fontSize: '0.75rem' }}
                                                 title="Delete student"
                                             >
                                                 ✕
@@ -179,7 +170,7 @@ const Students = () => {
 
             {activeTab === 'create' && (
                 <div className="card" style={{ maxWidth: '600px' }}>
-                    <h2 style={{ fontSize: '1.1rem', marginBottom: '24px', color: 'var(--primary-color)' }}>Student Identity</h2>
+                    <h2 style={{ fontSize: '1rem', marginBottom: '24px', fontWeight: 700, color: 'var(--primary)' }}>Student Identity</h2>
                     <form onSubmit={handleCreate}>
                         <div className="form-group">
                             <label className="form-label">Full Name</label>

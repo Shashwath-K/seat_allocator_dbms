@@ -582,7 +582,7 @@ const RoomAllotmentDetail = () => {
                                                      width: 34, height: 34, borderRadius: 8, fontSize: '0.85rem', fontWeight: 800,
                                                      background: 'var(--primary)',
                                                      color: '#fff',
-                                                     boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                                                     boxShadow: '0 2px 4px rgba(249, 115, 22, 0.2)'
                                                  }}>
                                                      {seatNum}
                                                  </span>
