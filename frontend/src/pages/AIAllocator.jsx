@@ -81,111 +81,136 @@ const AIAllocator = () => {
     };
 
     const formatContent = (text) => {
-        // Simple formatting: bold **, line breaks, code blocks
-        return text
-            .split('\n')
-            .map((line, i) => {
-                const formatted = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-                return <div key={i} dangerouslySetInnerHTML={{ __html: formatted }} />;
-            });
+        return text.split('\n').map((line, i) => {
+            const formatted = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            return <div key={i} dangerouslySetInnerHTML={{ __html: formatted }} />;
+        });
     };
+
+    const quickPrompts = [
+        'Show all sessions',
+        'Which rooms are empty today?',
+        'Which mentor is free today?',
+        'Show all rooms',
+    ];
 
     return (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 110px)' }}>
             <header className="page-header" style={{ marginBottom: 16 }}>
                 <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Sparkles size={28} color="var(--primary)" /> AI Query (Preview)
+                    <Sparkles size={24} />
+                    AI Query  <span style={{ fontSize: '0.6em', fontWeight: 500, color: 'var(--text-muted)', WebkitTextFillColor: 'var(--text-muted)', background: 'none', marginLeft: 2 }}>(Preview)</span>
                 </h1>
                 <p className="page-subtitle">Converse naturally to query or modify the allocation schedule. Write actions require manual confirmation.</p>
             </header>
 
             {/* Chat window */}
-            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '1px solid var(--surface-border)', background: 'rgba(255, 255, 255, 0.4)' }}>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', background: 'var(--surface)' }}>
+
+                {/* Messages */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {messages.map((msg, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 14 }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 12, alignItems: 'flex-end' }}>
+
+                            {/* AI Avatar */}
                             {msg.role === 'assistant' && (
                                 <div style={{
-                                    width: 40, height: 40, borderRadius: '12px',
+                                    width: 36, height: 36, borderRadius: 10,
                                     background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
                                     color: '#fff', display: 'flex', alignItems: 'center',
                                     justifyContent: 'center', flexShrink: 0,
-                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                                    boxShadow: '0 4px 12px rgba(249,115,22,0.3)'
                                 }}>
-                                    <Bot size={20} />
+                                    <Bot size={18} />
                                 </div>
                             )}
+
+                            {/* Bubble */}
                             <div style={{
-                                maxWidth: '75%',
-                                padding: '16px 20px',
-                                borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
-                                background: msg.role === 'user' ? 'var(--primary)' : 'white',
-                                color: msg.role === 'user' ? '#fff' : 'var(--text-main)',
+                                maxWidth: '72%',
+                                padding: '14px 18px',
+                                borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                background: msg.role === 'user'
+                                    ? 'linear-gradient(135deg, var(--primary) 0%, #ea6c00 100%)'
+                                    : 'var(--surface-2)',
+                                color: msg.role === 'user' ? '#fff' : 'var(--text-sub)',
                                 fontSize: '0.9375rem',
-                                lineHeight: 1.6,
-                                boxShadow: msg.role === 'user' ? '0 4px 15px rgba(79, 70, 229, 0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
-                                border: msg.role === 'user' ? 'none' : '1px solid var(--surface-border)'
+                                lineHeight: 1.65,
+                                boxShadow: msg.role === 'user'
+                                    ? '0 4px 16px rgba(249,115,22,0.25)'
+                                    : 'var(--shadow-sm)',
+                                border: msg.role === 'user' ? 'none' : '1px solid var(--surface-border)',
                             }}>
                                 {formatContent(msg.content)}
 
-                                {/* Confirmation Card for write proposals */}
+                                {/* Confirmation card */}
                                 {msg.requiresConfirmation && pendingProposal && i === messages.length - 1 && (
-                                    <div style={{ marginTop: 16, padding: 16, background: 'rgba(255,255,255,0.6)', borderRadius: 12, border: '1px solid rgba(79, 70, 229, 0.1)', backdropFilter: 'blur(4px)' }}>
-                                        <p style={{ margin: '0 0 14px 0', fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <Sparkles size={16} style={{ color: 'var(--primary)' }} /> Confirmation Required
+                                    <div style={{
+                                        marginTop: 14, padding: 14,
+                                        background: 'rgba(249,115,22,0.06)',
+                                        borderRadius: 10,
+                                        border: '1px solid rgba(249,115,22,0.15)',
+                                    }}>
+                                        <p style={{ margin: '0 0 12px 0', fontSize: '0.8125rem', color: 'var(--text-main)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                                            <Sparkles size={14} style={{ color: 'var(--primary)' }} />
+                                            Confirmation Required
                                         </p>
-                                        <div style={{ display: 'flex', gap: 10 }}>
+                                        <div style={{ display: 'flex', gap: 8 }}>
                                             <button
                                                 onClick={confirmProposal}
-                                                className="btn btn-primary"
-                                                style={{ padding: '8px 16px', fontSize: '0.8125rem', height: 'auto', background: 'var(--success)', borderColor: 'var(--success)' }}
-                                            ><CheckCircle size={14} style={{ marginRight: 6 }} /> Confirm & Execute</button>
+                                                className="btn btn-success"
+                                                style={{ padding: '7px 14px', fontSize: '0.8125rem' }}
+                                            >
+                                                <CheckCircle size={13} /> Confirm & Execute
+                                            </button>
                                             <button
                                                 onClick={rejectProposal}
-                                                className="btn btn-outline"
-                                                style={{ padding: '8px 16px', fontSize: '0.8125rem', height: 'auto', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
-                                            ><XCircle size={14} style={{ marginRight: 6 }} /> Cancel</button>
+                                                className="btn btn-danger"
+                                                style={{ padding: '7px 14px', fontSize: '0.8125rem' }}
+                                            >
+                                                <XCircle size={13} /> Cancel
+                                            </button>
                                         </div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* User Avatar */}
                             {msg.role === 'user' && (
                                 <div style={{
-                                    width: 40, height: 40, borderRadius: '12px',
-                                    background: 'white', display: 'flex', alignItems: 'center',
+                                    width: 36, height: 36, borderRadius: 10,
+                                    background: 'var(--surface-2)',
+                                    display: 'flex', alignItems: 'center',
                                     justifyContent: 'center', flexShrink: 0,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                                     border: '1px solid var(--surface-border)'
                                 }}>
-                                    <User size={20} style={{ color: 'var(--text-muted)' }} />
+                                    <User size={17} style={{ color: 'var(--text-muted)' }} />
                                 </div>
                             )}
                         </div>
                     ))}
 
+                    {/* Typing indicator */}
                     {loading && (
-                        <div style={{ display: 'flex', gap: 14 }}>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
                             <div style={{
-                                width: 40, height: 40, borderRadius: '12px',
+                                width: 36, height: 36, borderRadius: 10,
                                 background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
                                 color: '#fff', display: 'flex', alignItems: 'center',
                                 justifyContent: 'center', flexShrink: 0
                             }}>
-                                <Bot size={20} />
+                                <Bot size={18} />
                             </div>
                             <div style={{
-                                padding: '16px 20px',
-                                background: 'white',
-                                borderRadius: '20px 20px 20px 4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
+                                padding: '14px 18px',
+                                background: 'var(--surface-2)',
+                                borderRadius: '18px 18px 18px 4px',
+                                display: 'flex', alignItems: 'center', gap: 8,
                                 color: 'var(--text-muted)',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                                 border: '1px solid var(--surface-border)'
                             }}>
-                                <Loader size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }} />
-                                <span style={{ fontWeight: 500 }}>AI is thinking…</span>
+                                <Loader size={16} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }} />
+                                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>AI is thinking…</span>
                             </div>
                         </div>
                     )}
@@ -193,23 +218,29 @@ const AIAllocator = () => {
                 </div>
 
                 {/* Quick prompts */}
-                <div style={{ padding: '8px 16px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {[
-                        'Show all sessions',
-                        'Which rooms are empty today?',
-                        'Which mentor is free today?',
-                        'Show all rooms',
-                    ].map(prompt => (
+                <div style={{ padding: '10px 20px', borderTop: '1px solid var(--surface-border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {quickPrompts.map(prompt => (
                         <button
                             key={prompt}
                             onClick={() => setInput(prompt)}
-                            style={{ padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: 20, background: '#f8fafc', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--text-muted)' }}
-                        >{prompt}</button>
+                            style={{
+                                padding: '5px 12px',
+                                border: '1px solid var(--surface-border)',
+                                borderRadius: 20, background: 'var(--surface-2)',
+                                fontSize: '0.78rem', cursor: 'pointer',
+                                color: 'var(--text-muted)', fontFamily: 'inherit',
+                                transition: 'var(--transition)'
+                            }}
+                            onMouseEnter={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.color = 'var(--primary)'; }}
+                            onMouseLeave={e => { e.target.style.borderColor = 'var(--surface-border)'; e.target.style.color = 'var(--text-muted)'; }}
+                        >
+                            {prompt}
+                        </button>
                     ))}
                 </div>
 
                 {/* Input bar */}
-                <div style={{ padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: 12 }}>
+                <div style={{ padding: '14px 20px', borderTop: '1px solid var(--surface-border)', display: 'flex', gap: 10 }}>
                     <input
                         type="text"
                         className="form-control"
@@ -224,14 +255,12 @@ const AIAllocator = () => {
                         className="btn btn-primary"
                         onClick={sendMessage}
                         disabled={loading || !input.trim()}
-                        style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8 }}
+                        style={{ padding: '10px 18px' }}
                     >
-                        <Send size={16} /> Send
+                        <Send size={15} /> Send
                     </button>
                 </div>
             </div>
-
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 };
