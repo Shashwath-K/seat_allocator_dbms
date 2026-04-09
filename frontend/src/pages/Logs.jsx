@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, Calendar, User, Tag, Info } from 'lucide-react';
+import { History, Calendar, RefreshCw, Tag, User } from 'lucide-react';
 
 const Logs = () => {
   const [logs, setLogs] = useState([]);
@@ -7,11 +7,11 @@ const Logs = () => {
 
   useEffect(() => {
     fetchLogs();
-    // Initialize requested seed logs on first load if they don't exist
     fetch('http://127.0.0.1:8000/system-logs/initialize/', { method: 'POST' });
   }, []);
 
   const fetchLogs = async () => {
+    setLoading(true);
     try {
       const response = await fetch('http://127.0.0.1:8000/system-logs/');
       const data = await response.json();
@@ -23,100 +23,109 @@ const Logs = () => {
     }
   };
 
-  const getActionColor = (action) => {
-    switch (action) {
-      case 'CREATE': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'UPDATE': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
-      case 'DELETE': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-      case 'ALLOT': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
-      default: return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
-    }
+  const actionMeta = {
+    CREATE: { color: 'var(--success)',  bg: 'var(--success-subtle)',  border: 'rgba(63,185,80,0.2)' },
+    UPDATE: { color: 'var(--accent)',   bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.2)' },
+    DELETE: { color: 'var(--danger)',   bg: 'var(--danger-subtle)',  border: 'rgba(248,81,73,0.2)' },
+    ALLOT:  { color: 'var(--warning)',  bg: 'var(--warning-subtle)', border: 'rgba(210,153,34,0.2)' },
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    const d = new Date(dateString);
+    return d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
   };
 
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="fade-in">
+      <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            <History className="w-8 h-8 text-primary-color" />
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <History size={26} style={{ color: 'var(--primary)', filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.5))' }} />
             System Activity Logs
           </h1>
-          <p className="text-slate-400 mt-1">Real-time tracking of all database operations and allotments.</p>
+          <p className="page-subtitle">Real-time tracking of all database operations and allotments.</p>
         </div>
-        <button 
-          onClick={fetchLogs}
-          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium transition-all"
-        >
-          Refresh Logs
+        <button onClick={fetchLogs} className="btn btn-outline" style={{ gap: 8 }}>
+          <RefreshCw size={15} />
+          Refresh
         </button>
-      </div>
+      </header>
 
-      <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+          <table>
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Timestamp</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Action</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Model</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Entity</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">User</th>
+              <tr>
+                <th style={{ paddingLeft: 24 }}>Timestamp</th>
+                <th>Action</th>
+                <th>Model</th>
+                <th>Entity</th>
+                <th>User</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500 italic">
-                    Loading activity logs...
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    Loading activity logs…
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500 italic">
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                     No activity logs recorded yet.
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-slate-300 text-sm">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        {formatDate(log.timestamp)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold border ${getActionColor(log.action_type)}`}>
-                        {log.action_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-3.5 h-3.5" />
-                        {log.model_name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-white group-hover:text-primary-color transition-colors">
-                        {log.object_repr}
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5 max-w-xs truncate">
-                        {log.details}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <User className="w-3.5 h-3.5 rounded-full bg-white/5 p-0.5" />
-                        {log.user}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                logs.map((log) => {
+                  const meta = actionMeta[log.action_type] || { color: 'var(--text-muted)', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.15)' };
+                  return (
+                    <tr key={log.id}>
+                      <td style={{ paddingLeft: 24 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                          <Calendar size={13} />
+                          {formatDate(log.timestamp)}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center',
+                          padding: '3px 9px', borderRadius: 6,
+                          fontSize: '0.7rem', fontWeight: 800,
+                          letterSpacing: '0.06em', textTransform: 'uppercase',
+                          color: meta.color, background: meta.bg,
+                          border: `1px solid ${meta.border}`,
+                        }}>
+                          {log.action_type}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                          <Tag size={12} />
+                          {log.model_name}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500, color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                          {log.object_repr}
+                        </div>
+                        {log.details && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {log.details}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                          <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={12} style={{ color: 'var(--text-muted)' }} />
+                          </div>
+                          {log.user}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
