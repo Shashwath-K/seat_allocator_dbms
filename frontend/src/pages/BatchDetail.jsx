@@ -198,7 +198,7 @@ const BatchDetail = () => {
                             style={{ marginBottom: '12px' }}
                             autoFocus
                         />
-                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white' }}>
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--surface-border)', borderRadius: '6px', background: 'var(--surface-2)' }}>
                             {filteredUnassigned.length > 0 ? (
                                 filteredUnassigned.map(s => (
                                     <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
