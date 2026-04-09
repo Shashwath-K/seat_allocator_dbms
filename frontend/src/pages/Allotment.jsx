@@ -105,7 +105,8 @@ const Allotment = () => {
                 </div>
                 <button
                     onClick={handleResetAllocations}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, cursor: 'pointer', color: '#991b1b', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', marginTop: 4 }}
+                    className="btn btn-danger"
+                    style={{ fontSize: '0.85rem', gap: 6 }}
                 >
                     <RotateCcw size={15} /> Reset All Allocations
                 </button>
@@ -127,13 +128,13 @@ const Allotment = () => {
                                 type="text"
                                 className="form-control"
                                 placeholder="Search scheduled facility..."
-                                style={{ paddingLeft: 48, background: 'rgba(0,0,0,0.02)' }}
+                                style={{ paddingLeft: 48 }}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <div style={{ width: '220px' }}>
-                            <select className="form-control" style={{ background: 'rgba(0,0,0,0.02)' }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                            <select className="form-control" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                                 <option value="all">All Room Types</option>
                                 <option value="regular">Regular Classes</option>
                                 <option value="lab">Laboratories</option>
@@ -172,18 +173,18 @@ const Allotment = () => {
                                     </div>
                                 </div>
                                 <div style={{ flex: '1' }}>
-                                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)', fontSize: '0.9375rem', color: 'var(--text-main)' }}>
+                                    <div style={{ background: 'var(--surface-2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border)', fontSize: '0.9375rem', color: 'var(--text-main)' }}>
                                         {rg.type === 'regular' && (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Structure:</span> <span style={{ fontWeight: 600 }}>{rg.num_rows} × {rg.tables_per_row} × {rg.seats_per_table}</span></div>
-                                                <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }}></div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }} />
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 700 }}><span>Map Capacity:</span> <span>{rg.capacity} Seats</span></div>
                                             </div>
                                         )}
                                         {rg.type === 'lab' && (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Systems count:</span> <span style={{ fontWeight: 600 }}>{rg.num_systems}</span></div>
-                                                <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }}></div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }} />
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 700 }}><span>Batch Limit:</span> <span>{rg.seats_per_batch}</span></div>
                                             </div>
                                         )}
@@ -191,9 +192,9 @@ const Allotment = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span>Pattern:</span>
-                                                    <code style={{ background: 'rgba(79, 70, 229, 0.05)', padding: '2px 8px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>{rg.conference_layout}</code>
+                                                    <code style={{ background: 'var(--primary-subtle)', padding: '2px 8px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>{rg.conference_layout}</code>
                                                 </div>
-                                                <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }}></div>
+                                                <div style={{ height: '1px', background: 'var(--surface-border)', margin: '4px 0' }} />
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 700 }}><span>Map Capacity:</span> <span>{rg.capacity} Seats</span></div>
                                             </div>
                                         )}
@@ -211,7 +212,7 @@ const Allotment = () => {
                             const matchesType = filterType === 'all' || rg.type === filterType;
                             return matchesSearch && matchesType;
                         }).length === 0 && (
-                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', background: 'rgba(255,255,255,0.4)', borderRadius: '16px', border: '2px dashed var(--surface-border)', color: 'var(--text-muted)' }}>
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', background: 'var(--surface-2)', borderRadius: '16px', border: '2px dashed var(--surface-border)', color: 'var(--text-muted)' }}>
                                 <div style={{ marginBottom: '16px' }}><Calendar size={48} style={{ opacity: 0.2 }} /></div>
                                 <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No rooms configured for layout matrix display.</p>
                                 <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => navigate('/rooms')}>Configure Rooms</button>
@@ -263,10 +264,11 @@ const Allotment = () => {
                                     <button key={day} type="button"
                                         onClick={() => toggleDay(day)}
                                         style={{
-                                            padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border-color)',
-                                            background: formData.days.includes(day) ? 'var(--primary)' : '#fff',
-                                            color: formData.days.includes(day) ? '#fff' : 'var(--text-color)',
-                                            cursor: 'pointer', transition: '0.2s', fontSize: '0.85rem'
+                                            padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--surface-border)',
+                                            background: formData.days.includes(day) ? 'var(--primary)' : 'var(--surface-2)',
+                                            color: formData.days.includes(day) ? '#fff' : 'var(--text-muted)',
+                                            cursor: 'pointer', transition: '0.2s', fontSize: '0.85rem',
+                                            fontFamily: 'inherit'
                                         }}>
                                         {day}
                                     </button>
